@@ -1,6 +1,6 @@
 # RenderPipeline.md — Traversal-and-draw architecture
 
-Companion to `Sources/SVGRenderer/RenderContext.swift`. Explains the render
+Companion to `Sources/ThinPath/RenderContext.swift`. Explains the render
 walk, the explicit state stack, and — the memory-critical decision — exactly when
 an offscreen layer is unavoidable and how its backing store is clamped so it never
 allocates the full canvas.

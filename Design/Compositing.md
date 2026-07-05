@@ -1,6 +1,6 @@
 # Compositing.md — Paint servers & coordinate mapping
 
-Companion to `Sources/SVGRenderer/PaintServer.swift`. Covers the paint-server
+Companion to `Sources/ThinPath/PaintServer.swift`. Covers the paint-server
 protocol (solid / linear / radial gradient / pattern), the coordinate mapping for
 `objectBoundingBox` vs `userSpaceOnUse` plus `gradientTransform`/`patternTransform`,
 how patterns tile via `CGPattern` callbacks (**not** a giant bitmap), and how

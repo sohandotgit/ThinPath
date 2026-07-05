@@ -1,6 +1,6 @@
 # CachePolicy.md — Decoded-image cache & eviction
 
-Companion to `Sources/SVGRenderer/ImageCache.swift`. Defines the eviction policy
+Companion to `Sources/ThinPath/ImageCache.swift`. Defines the eviction policy
 for the decoded-`<image>` cache. The policy is stated here, but the whole
 subsystem is flagged:
 

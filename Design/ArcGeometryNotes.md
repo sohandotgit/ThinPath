@@ -2,7 +2,7 @@
 
 How `PathBuilder.swift` turns IR path commands into a `CGMutablePath`, with the
 weight on SVG elliptical arcs (`A`/`a`). Companion invariant tests:
-`Tests/SVGRendererTests/ArcGeometryTests.swift`. Spec references are to SVG 1.1
+`Tests/ThinPathTests/ArcGeometryTests.swift`. Spec references are to SVG 1.1
 Appendix F.6 ("Elliptical arc implementation notes"), which SVG 2 adopts
 unchanged.
 

@@ -1,6 +1,6 @@
 # ImageDecodeNotes.md — the `<image>` decode path
 
-Companion to `Sources/SVGRenderer/ImageDecoder.swift`. Also read
+Companion to `Sources/ThinPath/ImageDecoder.swift`. Also read
 `CachePolicy.md` (the cache this feeds) — the two documents split the boundary:
 CachePolicy owns *retention*, this document owns *how pixels come to exist*.
 

@@ -2,24 +2,24 @@
 import PackageDescription
 
 let package = Package(
-    name: "SVGRenderer",
+    name: "ThinPath",
     platforms: [
         .iOS(.v13)
     ],
     products: [
         .library(
-            name: "SVGRenderer",
-            targets: ["SVGRenderer"]
+            name: "ThinPath",
+            targets: ["ThinPath"]
         )
     ],
     targets: [
         .target(
-            name: "SVGRenderer",
+            name: "ThinPath",
             dependencies: []
         ),
         .testTarget(
-            name: "SVGRendererTests",
-            dependencies: ["SVGRenderer"],
+            name: "ThinPathTests",
+            dependencies: ["ThinPath"],
             resources: [
                 .copy("SampleSVGs")
             ]

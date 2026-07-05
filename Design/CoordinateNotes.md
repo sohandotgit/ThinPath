@@ -1,6 +1,6 @@
 # CoordinateNotes.md — Transform & viewport coordinate math
 
-Companion to `Sources/SVGRenderer/Transforms.swift`. Records the conventions,
+Companion to `Sources/ThinPath/Transforms.swift`. Records the conventions,
 the composition-order derivation (easy to get backwards), the viewBox /
 preserveAspectRatio equations, and the open question for nested viewports.
 

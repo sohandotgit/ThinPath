@@ -1,6 +1,6 @@
 # CascadeRules.md — Computed-style resolution
 
-Companion to `Sources/SVGRenderer/StyleResolver.swift`. Describes how a per-element
+Companion to `Sources/ThinPath/StyleResolver.swift`. Describes how a per-element
 `RawStyle` (presentation attributes + inline `style=""`) becomes a fully-resolved
 `ComputedStyle`, which properties inherit, and the deferred / tricky bits.
 

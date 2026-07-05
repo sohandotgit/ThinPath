@@ -69,7 +69,7 @@ not a silent bad comparison.
 
 ## 3. Where files go
 
-Save each PNG directly into `Tests/SVGRendererTests/SampleSVGs/references/`
+Save each PNG directly into `Tests/ThinPathTests/SampleSVGs/references/`
 using the exact filename from `references/MANIFEST.md` (e.g.
 `linear_gradient_basic.png`). No subfolders. `SnapshotSupport.loadReferencePNG`
 looks them up by that name via `Bundle.module`, so `Package.swift`'s existing

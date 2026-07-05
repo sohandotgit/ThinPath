@@ -1,6 +1,6 @@
 # MemoryModel.md — Rationale for the SVG IR memory design
 
-Companion to `Sources/SVGRenderer/SVGModel.swift`. This document explains *why*
+Companion to `Sources/ThinPath/SVGModel.swift`. This document explains *why*
 the IR is shaped the way it is, what is deliberately **not** retained, how large
 subtrees stay cheap, and which assumptions a later profiling pass must confirm.
 

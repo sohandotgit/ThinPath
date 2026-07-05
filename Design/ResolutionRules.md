@@ -1,6 +1,6 @@
 # ResolutionRules.md — defs / use / symbol / href resolution
 
-Companion to `Sources/SVGRenderer/ReferenceResolver.swift`. Describes how
+Companion to `Sources/ThinPath/ReferenceResolver.swift`. Describes how
 references resolve over the `id → NodeIndex` table **without deep-copying any
 subtree**, cycle detection, `<use>` x/y/width/height, `<symbol>` viewport +
 `preserveAspectRatio`, and the inheritance-into-instance rule flagged in
