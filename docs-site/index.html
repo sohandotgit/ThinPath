@@ -13,6 +13,7 @@
   body { margin: 0; }
   ::selection { background: #DFFF4F; color: #14140F; }
 
+  .tp-hero-grid > *, .tp-start-grid > *, .tp-why-grid > *, .tp-features-grid > *, .tp-highlights-grid > *, .tp-docs-grid > * { min-width: 0; }
   .tp-hero-grid { grid-template-columns: 1.15fr 0.85fr; }
   .tp-start-grid { grid-template-columns: 0.8fr 1.2fr; }
   .tp-why-grid { grid-template-columns: repeat(2, 1fr); }
@@ -226,10 +227,10 @@
   <!-- QUICK START -->
   <section id="start" class="tp-pad-section" style="max-width: 1120px; margin: 0 auto; padding: 76px 28px;">
     <div class="tp-start-grid" style="display: grid; gap: 48px; align-items: start;">
-      <div>
+      <div style="min-width: 0;">
         <h2 style="font-size: clamp(28px, 3.4vw, 42px); letter-spacing: -0.03em; font-weight: 700; margin: 0 0 16px;">Up and running in a few lines.</h2>
         <p style="font-size: 17px; line-height: 1.5; opacity: 0.72; margin: 0 0 24px;">Add the package, import the module, parse and render. No configuration, no bridging headers, no C++ toolchain.</p>
-        <div style="border: 2px solid #14140F; border-radius: 10px; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; background: #FEFDFA; display: inline-block;">
+        <div style="border: 2px solid #14140F; border-radius: 10px; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; background: #FEFDFA; max-width: 100%; overflow-x: auto; white-space: nowrap;">
           .package(url: "https://github.com/sohandotgit/ThinPath.git", branch: "main")
         </div>
       </div>
