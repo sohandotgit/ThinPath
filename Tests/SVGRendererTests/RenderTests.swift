@@ -35,6 +35,7 @@
 
 import XCTest
 import CoreGraphics
+import CoreText
 @testable import SVGRenderer
 
 final class RenderTests: XCTestCase {
@@ -214,6 +215,48 @@ final class RenderTests: XCTestCase {
     func testTextBasicMatchesGolden() {
         let image = render("text/text_basic", width: 200, height: 60)
         SnapshotSupport.assertMatchesGolden(image, referenceName: "text_basic", perPixelTolerance: 40, maxDivergentFraction: 0.05)
+    }
+
+    // MARK: - Regression — missing font family still renders text (fallback)
+
+    /// The only `font-family` is a quoted family absent from iOS
+    /// (`'Liberation Sans'`) with no fallback in the list — the exact shape that
+    /// left this Inkscape/Wikimedia diagram's text invisible. After the system-
+    /// font fallback, at least one dark text pixel must appear over the white
+    /// canvas. Glyph placement is font/hinting dependent, so this asserts on the
+    /// *presence* of drawn text, not an exact coordinate.
+    func testMissingFontFamilyFallsBackAndRendersText() {
+        let image = render("text/text_missing_family_fallback", width: 200, height: 60)
+        let (bytes, width, height) = SnapshotSupport.rgbaBuffer(image)
+        var darkPixels = 0
+        for i in stride(from: 0, to: width * height * 4, by: 4) where
+            bytes[i] < 96 && bytes[i + 1] < 96 && bytes[i + 2] < 96 {
+            darkPixels += 1
+        }
+        XCTAssertGreaterThan(
+            darkPixels, 0,
+            "text with a missing quoted font-family and no fallback rendered no "
+            + "dark pixels — the system-font fallback did not draw the label"
+        )
+    }
+
+    /// Direct check on the resolver: a quoted, absent family with no fallback
+    /// resolves to a non-nil font at the requested size, and it is the iOS
+    /// system fallback (its family name matches the plain system font's).
+    func testResolveFontFallsBackToSystemFontForMissingFamily() {
+        let size: CGFloat = 12.3472  // one of the odd sizes present in the source SVG
+        let resolved = TextRenderer.resolveFont(
+            familyList: "'Liberation Sans'", size: size, weight: 400, italic: false
+        )
+        XCTAssertEqual(CTFontGetSize(resolved), size, accuracy: 0.001)
+
+        let systemFamily = CTFontCopyFamilyName(
+            CTFontCreateUIFontForLanguage(.system, size, nil)!
+        ) as String
+        XCTAssertEqual(
+            CTFontCopyFamilyName(resolved) as String, systemFamily,
+            "missing 'Liberation Sans' should fall back to the system font"
+        )
     }
 
     // MARK: - Tier 2: GOLDEN — images

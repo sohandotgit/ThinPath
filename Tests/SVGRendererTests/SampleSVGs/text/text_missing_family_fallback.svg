@@ -1,0 +1,13 @@
+<!--
+Regression case for the Inkscape/Wikimedia missing-text bug: the only
+font-family is a quoted family absent from iOS (`'Liberation Sans'`) with NO
+generic fallback in the list, and an Inkscape-private
+`-inkscape-font-specification` sits alongside it. Font resolution must strip
+the quotes, reject the unresolved family, ignore the private property, and
+fall back to the iOS system font so the label is still drawn. Rendered as a
+spot check: a dark text pixel must appear somewhere over the white canvas.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="60" viewBox="0 0 200 60">
+  <rect x="0" y="0" width="200" height="60" fill="#FFFFFF"/>
+  <text x="10" y="44" style="font-style:normal;font-weight:normal;font-size:40px;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans, Normal';fill:#000000">Hamburg</text>
+</svg>
