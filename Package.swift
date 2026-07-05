@@ -26,3 +26,5 @@ let package = Package(
         )
     ]
 )
+
+package.licenseURL = "LICENSE"
