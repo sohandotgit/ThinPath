@@ -54,15 +54,35 @@ public enum ImageRenderer {
             .applying(context.current.userToDevice)
         let targetPixelW = max(1, Int(fitRectDevice.width.rounded()))
         let targetPixelH = max(1, Int(fitRectDevice.height.rounded()))
-        let drawImage = bilinearResample(cgImage, toPixelWidth: targetPixelW, targetPixelHeight: targetPixelH)
-            ?? cgImage
+
+        // MEMORY GUARD (ImageDecodeNotes.md §3b): the resample output is an
+        // offscreen buffer sized from `fitRectDevice`, and nothing upstream
+        // guarantees that rect is sane — it composes every ancestor transform,
+        // including pattern/use spaces. Only materialize device pixels that
+        // can actually land in the region this pass produces (clip ∩ dirty,
+        // padded a pixel for rounding). Past that bound — a heavily clipped
+        // draw, or an upstream coordinate-space bug — skip the custom
+        // resampler and let CG sample the decoded image through the clip at
+        // draw time, which is bounded by the render target no matter what the
+        // CTM claims.
+        let visibleDevice = context.current.clipDeviceBounds.isNull
+            ? context.dirtyRect
+            : context.current.clipDeviceBounds.intersection(context.dirtyRect)
+        let resampleIsBounded = Self.fitsVisibleDeviceBounds(fitRectDevice: fitRectDevice,
+                                                             visibleDevice: visibleDevice)
+        let drawImage = resampleIsBounded
+            ? (bilinearResample(cgImage, toPixelWidth: targetPixelW, targetPixelHeight: targetPixelH)
+               ?? cgImage)
+            : cgImage
 
         let cg = context.cg
         cg.saveGState()
         cg.clip(to: destRect)
         cg.concatenate(fitTransform)
         cg.setAlpha(alpha)
-        cg.interpolationQuality = .none
+        // Resampled: the draw is a 1:1 device-pixel copy, so interpolation is
+        // off. Fallback: CG is the resampler, so it must interpolate.
+        cg.interpolationQuality = resampleIsBounded ? .none : .low
         // `CGContext.draw(_:in:)` places image row 0 at the rect's MAXIMUM y in
         // the current user space — correct in a y-up space, but our CTM is
         // y-down (SVG convention) throughout, so left uncorrected the image
@@ -72,6 +92,16 @@ public enum ImageRenderer {
         cg.scaleBy(x: 1, y: -1)
         cg.draw(drawImage, in: CGRect(x: 0, y: 0, width: cgImage.width, height: cgImage.height))
         cg.restoreGState()
+    }
+
+    /// The resample-buffer bound: `fitRectDevice` must lie inside the visible
+    /// device region (±1 px rounding slack) before a buffer of its size may be
+    /// allocated. Degenerate inputs (null/infinite/NaN rects, from a broken
+    /// CTM) fail the containment test and thus take the bounded CG-draw path —
+    /// the safe direction.
+    static func fitsVisibleDeviceBounds(fitRectDevice: CGRect, visibleDevice: CGRect) -> Bool {
+        guard !visibleDevice.isNull, !fitRectDevice.isNull else { return false }
+        return visibleDevice.insetBy(dx: -1, dy: -1).contains(fitRectDevice)
     }
 
     // MARK: - Bilinear resample (half-pixel-center, clamp-to-edge)

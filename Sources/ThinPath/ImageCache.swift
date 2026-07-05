@@ -122,6 +122,13 @@ public final class ImageCache {
         }
     }
 
+    /// Test-only introspection: the keys currently resident. Regression tests
+    /// assert every decode REQUEST was device-pixel-sized (a wrong-space
+    /// target shows up here as an absurd requested size even though the
+    /// decoder's native clamp bounds the actual decode). Internal on purpose:
+    /// production code must never branch on cache contents.
+    var residentKeysForTesting: [Key] { Array(map.keys) }
+
     /// Drop everything (e.g. document closed).
     public func removeAll() {
         map.removeAll()

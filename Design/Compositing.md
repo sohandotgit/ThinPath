@@ -103,16 +103,58 @@ Steps (`PatternPaint.fill`, TODO(render-thread) bodies):
 2. **Tile rect** from `(x,y,width,height)` mapped by `patternUnits`
    (objectBoundingBox → `ObjectBoundingBox.transform(objectBounds)`).
 3. **Content matrix** from `patternContentUnits` + optional `viewBox`/
-   `preserveAspectRatio` (`ViewportMath`) positions the children within one tile.
+   `preserveAspectRatio` (`ViewportMath`) positions the children within one tile
+   — see §4a for the exact units rule; it is the step that has already caused a
+   multi-GB incident when wrong.
 4. Build the `CGPattern` (callback re-walks children per cell); compose
    `patternTransform` into the pattern matrix; set as fill pattern; clip to the
    fill path; fill.
+
+The tile callback's `RenderContext` is seeded with the tile's **device-space**
+rect as `dirtyRect`/`clipDeviceBounds` (`tileBounds` × the pattern matrix).
+`dirtyRect` is device-space *by contract*; seeding it with the pattern-space
+tile rect (1×1 for a bbox-fractional tile) silently disables every
+device-space clamp inside the cell — layer sizing, ImageRenderer's resample
+bound.
 
 - **PROFILE-CHECK (pattern-tile-memory):** the callback must draw **vector** content
   per cell; confirm we do not accidentally snapshot the tile to an oversized
   intermediate. A tile with its own group-opacity/mask will itself trigger an
   isolation layer *per cell* — clamp that layer to the tile cell (RenderPipeline §5),
   and profile pathological small-tile-over-large-area fills.
+  *Realized once* (2026-07, `hotel_offer_bg_img1.svg`) via the §4a units bug:
+  the oversized intermediate was ImageRenderer's resample buffer, sized from a
+  content matrix that inflated the tile's children by bboxW × bboxH. Guarded
+  since by ImageDecodeNotes §3b's visible-region bound; regression-tested in
+  `PatternImageMemoryTests`.
+
+### 4a. Pattern content units — the four combinations
+
+`patternUnits` and `patternContentUnits` are **independent** selectors. The tile
+callback draws in *pattern space* (the space `tileBounds` and the `CGPattern`
+matrix are expressed in — bbox-fractional when `patternUnits` is
+objectBoundingBox). The children are authored in the space `patternContentUnits`
+implies (a `viewBox` overrides this entirely), so the content matrix is
+`contentSpace → userSpace → patternSpace`:
+
+| `patternContentUnits` | `patternUnits` | content matrix |
+|---|---|---|
+| userSpaceOnUse | userSpaceOnUse | identity |
+| objectBoundingBox | userSpaceOnUse | `ObjectBoundingBox.transform(bbox)` |
+| userSpaceOnUse | objectBoundingBox | `ObjectBoundingBox.transform(bbox)⁻¹` |
+| objectBoundingBox | objectBoundingBox | **identity** |
+
+The last row is the trap, and it is the *common* real-world case (Figma-style
+exports: `patternUnits` left at its objectBoundingBox default,
+`patternContentUnits="objectBoundingBox"`, content pre-scaled to fractions by a
+`<use transform="scale(~1/imageSize)">`). Pattern space is already
+bbox-fractional there; applying the bbox transform to the content *again*
+scales every tile child by bboxW × bboxH. In the incident file that inflated an
+embedded image's device fit rect to ~178,800 × 80,000 px on a 592×400 render —
+a ~57 GB resample buffer (observed as unbounded growth to ~40 GB, then a
+crash). The rule lives in one tested place,
+`PatternRenderer.contentUnitsMatrix`, with all four combinations pinned by
+`PatternImageMemoryTests`.
 - **PROFILE-CHECK (pattern-of-pattern / pattern-of-use):** nested paint servers and
   `<use>` inside a tile re-enter the walk; confirm depth is bounded and cheap.
 

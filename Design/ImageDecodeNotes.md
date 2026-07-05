@@ -151,6 +151,35 @@ factor):
   *actual decoded* image's dimensions, so a native-clamped decode is charged at
   its real (smaller) size, not the requested one.
 
+## 3b. Derived buffers after decode — the visible-region bound
+
+The decoder's native clamp (§3) bounds what *decode* can allocate, but
+`ImageRenderer` derives one more pixel buffer after decode: the exact-size
+bilinear resample of the decoded image to its device fit rect (for
+deterministic cross-renderer magnification). That buffer is sized from
+`fitRectDevice` — the element rect through the full CTM — and the CTM composes
+*every* ancestor space, including pattern and `<use>` spaces. Nothing upstream
+guarantees it is sane.
+
+**THE BOUND.** A derived buffer may only be materialized when its device rect
+lies inside the region the pass can actually produce — `clip ∩ dirty`, ±1 px
+rounding slack (`ImageRenderer.fitsVisibleDeviceBounds`). Past that bound, the
+decoded (already native-clamped) image is drawn directly and Core Graphics
+samples it through the clip at draw time: bounded by the render target no
+matter what the CTM claims. Degenerate rects (null/infinite/NaN from a broken
+CTM) fail the containment test, i.e. fail *safe*.
+
+This bound was added after a real incident (Compositing.md §4a): a
+wrong-space pattern content matrix inflated `fitRectDevice` to
+~178,800 × 80,000 px on a 592×400 render, and the resampler tried to
+materialize ~57 GB. The decode path itself held (native clamp → 1192×800);
+the derived buffer was the hole. Note the decode *request* is deliberately
+NOT clamped to the visible region: a partially-visible image still needs
+scale-derived resolution for the part that shows, and the native clamp
+already bounds the decode. Regression-tested end-to-end in
+`PatternImageMemoryTests` (footprint bound + every cache-key request
+device-sized).
+
 ---
 
 ## 4. Buffer lifecycle for `data:` URIs
@@ -216,6 +245,9 @@ Instruments on device, not settled facts.
    small source and confirm the decoded image is native-size (no upscaled
    buffer) and the EXIF-orientation swap yields correctly-sized results for
    orientations 5–8 (a transposed portrait photo is the classic off-by-swap).
+   *Confirmed in the field* (2026-07 pattern incident): a 176,417 × 80,000 px
+   request against a 1192×800 PNG decoded exactly 1192×800. The clamp held;
+   the blow-up was downstream (§3b).
 5. **PROFILE-CHECK (imageio-cache-off)** — repeat-decode the same source and
    confirm ImageIO's internal caches don't grow (i.e. `ShouldCache: false` at
    source creation is actually honored across OS versions); otherwise every

@@ -42,27 +42,23 @@ public enum PatternRenderer {
 
         // "Pattern space" (what `tileBounds`/`matrix`/`xStep`/`yStep` below are
         // expressed in) is whatever unit `patternUnits` implies for x/y/width/
-        // height — here that's bbox-FRACTIONAL, since `serverToUser` folds in
-        // `ObjectBoundingBox.transform`. `patternContentUnits` is independent:
-        // when it's `userSpaceOnUse` (the default), the pattern's CHILDREN are
-        // authored in ABSOLUTE document user-space units regardless of how the
-        // tile rect itself was scaled — so if `patternUnits` is
-        // objectBoundingBox, content coordinates must be converted from
-        // absolute space INTO that same fractional pattern space (the inverse
-        // of the units mapping) before drawing, or they land in the wrong
-        // (much larger) coordinate frame entirely.
-        var contentMatrix = CGAffineTransform.identity
+        // height — bbox-FRACTIONAL when it's objectBoundingBox, since
+        // `serverToUser` folds in `ObjectBoundingBox.transform`. The children
+        // are authored in the space `patternContentUnits` implies (or the
+        // viewBox, which overrides it) and must be mapped INTO pattern space;
+        // see `contentUnitsMatrix` for the four unit combinations and
+        // Compositing.md §4a for the incident where one wrong combination
+        // inflated every tile child by the bbox size.
+        let contentMatrix: CGAffineTransform
         if let viewBox = pattern.viewBox {
             contentMatrix = ViewportMath.viewportTransform(
                 viewBox: viewBox,
                 viewport: CGRect(origin: tileBounds.origin, size: tileBounds.size),
                 par: pattern.preserveAspectRatio)
-        } else if pattern.patternContentUnits == .objectBoundingBox {
-            contentMatrix = ObjectBoundingBox.transform(objectBounds) ?? .identity
-        } else if pattern.patternUnits == .objectBoundingBox {
-            if let unitsMatrix = ObjectBoundingBox.transform(objectBounds) {
-                contentMatrix = unitsMatrix.inverted()
-            }
+        } else {
+            contentMatrix = contentUnitsMatrix(patternUnits: pattern.patternUnits,
+                                               contentUnits: pattern.patternContentUnits,
+                                               objectBounds: objectBounds)
         }
 
         let cg = context.cg
@@ -75,7 +71,8 @@ public enum PatternRenderer {
         let box = Unmanaged.passRetained(PatternCellBox(
             document: context.document, images: context.images,
             contentSource: contentSource, contentMatrix: contentMatrix,
-            tileBounds: tileBounds
+            tileBounds: tileBounds,
+            tileDeviceBounds: tileBounds.applying(patternSpaceToDevice)
         )).toOpaque()
 
         var callbacks = CGPatternCallbacks(
@@ -112,6 +109,38 @@ public enum PatternRenderer {
 
         cg.restoreGState()
     }
+
+    /// Map pattern-CONTENT coordinates into PATTERN space — the space
+    /// `tileBounds` and the `CGPattern` matrix are expressed in, i.e. the user
+    /// space the tile callback's context starts in.
+    ///
+    /// Two independent selectors are in play and BOTH matter:
+    /// `patternContentUnits` says what space the children are authored in
+    /// (absolute user space, or bbox fractions); `patternUnits` says what
+    /// space the tile rect — and therefore pattern space itself — is
+    /// expressed in. The mapping is contentSpace → userSpace → patternSpace
+    /// (`M = contentToUser · userToPattern`), which collapses to:
+    ///
+    ///   * same units on both sides (user/user or bbox/bbox) → IDENTITY: the
+    ///     children are already authored in pattern space. The bbox/bbox case
+    ///     previously (incorrectly) applied the bbox transform here, scaling
+    ///     the content by the bbox size a SECOND time — the tile matrix
+    ///     already contains that mapping — which inflated everything inside
+    ///     the tile ~bboxWidth × bboxHeight-fold (Compositing.md §4a).
+    ///   * content bbox-fractional, tile user-space → the bbox transform.
+    ///   * content user-space, tile bbox-fractional → its INVERSE.
+    ///
+    /// A degenerate bbox yields identity: when `patternUnits` is
+    /// objectBoundingBox the caller has already bailed out via
+    /// `PaintCoordinateSpace`, and bbox-fractional content on a zero-area
+    /// element paints nothing meaningful either way.
+    static func contentUnitsMatrix(patternUnits: Units, contentUnits: Units,
+                                   objectBounds: CGRect) -> CGAffineTransform {
+        guard contentUnits != patternUnits,
+              let bbox = ObjectBoundingBox.transform(objectBounds)
+        else { return .identity }
+        return contentUnits == .objectBoundingBox ? bbox : bbox.inverted()
+    }
 }
 
 /// Retained context handed through the `CGPattern` callback's opaque `info`
@@ -123,19 +152,27 @@ private final class PatternCellBox {
     let contentSource: NodeIndex
     let contentMatrix: CGAffineTransform
     let tileBounds: CGRect
+    /// The tile rect in DEVICE pixels (`tileBounds` × the pattern matrix).
+    /// `RenderContext.dirtyRect`/`clipDeviceBounds` are device-space by
+    /// contract; seeding them with the pattern-space `tileBounds` (a 1×1 rect
+    /// for a bbox-fractional tile) would make every device-space clamp inside
+    /// the cell — layer sizing, ImageRenderer's resample bound — nonsense.
+    let tileDeviceBounds: CGRect
 
     init(document: SVGDocument, images: ImageCache, contentSource: NodeIndex,
-         contentMatrix: CGAffineTransform, tileBounds: CGRect) {
+         contentMatrix: CGAffineTransform, tileBounds: CGRect, tileDeviceBounds: CGRect) {
         self.document = document
         self.images = images
         self.contentSource = contentSource
         self.contentMatrix = contentMatrix
         self.tileBounds = tileBounds
+        self.tileDeviceBounds = tileDeviceBounds
     }
 
     func draw(into cgContext: CGContext) {
         let cellContext = RenderContext(cg: cgContext, document: document,
-                                        dirtyRect: tileBounds, images: images)
+                                        dirtyRect: tileDeviceBounds, images: images)
+        cellContext.setViewport(tileBounds.size)   // % lengths stay pattern-space
         cellContext.concatenate(contentMatrix)
         var walk = RenderWalk(visitor: DefaultVisitor(), context: cellContext)
         document.forEachChild(of: contentSource) { child in
