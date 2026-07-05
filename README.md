@@ -94,11 +94,20 @@ See `Design/MemoryModel.md` for a full list of profiling checks (use-expansion c
 
 ## Documentation
 
+- **Live docs:** https://sohandotgit.github.io/ThinPath/ (landing page); API reference at https://sohandotgit.github.io/ThinPath/docs/documentation/thinpath/
 - **[PublicAPI.md](PublicAPI.md)** — function signatures and code examples
 - **[Design/MemoryModel.md](Design/MemoryModel.md)** — IR architecture and layout reasoning
 - **[Design/RenderPipeline.md](Design/RenderPipeline.md)** — render walk and visitor pattern
 - **[Design/CascadeRules.md](Design/CascadeRules.md)** — style resolution and inheritance
 - **[Examples/](Examples/)** — runnable code snippets
+
+Docs are built with [Swift-DocC](https://github.com/swiftlang/swift-docc-plugin) and deployed to GitHub Pages by `.github/workflows/docs.yml` on every push to `main`. To preview locally:
+
+```sh
+swift package --disable-sandbox preview-documentation --target ThinPath
+```
+
+This starts a local preview server (default `http://localhost:8000/documentation/thinpath/`) that live-reloads as you edit files under `Sources/ThinPath/ThinPath.docc/`.
 
 ## Requirements
 

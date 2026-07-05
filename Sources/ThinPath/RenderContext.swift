@@ -227,9 +227,12 @@ public final class RenderContext {
     ///  * `opacity == 1`, or a fill-only/stroke-only shape with opacity < 1 —
     ///    folded, no layer.
     ///
-    /// - Parameter paintsFillAndStroke: whether this node (if a shape) will emit
-    ///   both a fill and a stroke pass; the visitor knows this from the resolved
-    ///   paints and passes it in.
+    /// - Parameters:
+    ///   - node: the node being evaluated.
+    ///   - style: the node's resolved style.
+    ///   - paintsFillAndStroke: whether this node (if a shape) will emit
+    ///     both a fill and a stroke pass; the visitor knows this from the resolved
+    ///     paints and passes it in.
     public func needsIsolationLayer(_ node: NodeIndex,
                                     style: ComputedStyle,
                                     paintsFillAndStroke: Bool) -> Bool {

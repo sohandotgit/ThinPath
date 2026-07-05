@@ -1,0 +1,82 @@
+# Builds the DocC documentation site and the marketing landing page, then
+# deploys both to GitHub Pages.
+#
+# BEFORE THIS WORKFLOW CAN DEPLOY, enable Pages via GitHub Actions:
+#   Settings > Pages > Build and deployment > Source: "GitHub Actions"
+# (Not "Deploy from a branch" — this workflow uploads a Pages artifact
+# directly, it does not push to a gh-pages branch.)
+#
+# Site layout produced by this workflow (served at
+# https://sohandotgit.github.io/ThinPath/):
+#   /              <- docs-site/index.html (hand-authored landing page)
+#   /docs/         <- DocC "transform-for-static-hosting" output
+#
+# Versions pinned below (actions/checkout@v4, actions/configure-pages@v5,
+# actions/upload-pages-artifact@v4, actions/deploy-pages@v4) are current as
+# of this writing (mid-2026). Verify against each action's releases page if
+# this workflow starts failing after a long period of inactivity.
+
+name: Deploy DocC to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Swift/Xcode version
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build (sanity check)
+        run: swift build
+
+      - name: Generate DocC static-hosting site
+        run: |
+          swift package \
+            --allow-writing-to-directory ./site/docs \
+            generate-documentation \
+            --target ThinPath \
+            --output-path ./site/docs \
+            --transform-for-static-hosting \
+            --hosting-base-path ThinPath/docs
+
+      - name: Assemble landing page
+        run: |
+          mkdir -p ./site
+          cp docs-site/index.html ./site/index.html
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
