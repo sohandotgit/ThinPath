@@ -49,6 +49,7 @@ jobs:
 
       - name: Generate DocC static-hosting site
         run: |
+          mkdir -p ./site
           swift package \
             --allow-writing-to-directory ./site/docs \
             generate-documentation \
@@ -58,9 +59,7 @@ jobs:
             --hosting-base-path ThinPath/docs
 
       - name: Assemble landing page
-        run: |
-          mkdir -p ./site
-          cp docs-site/index.html ./site/index.html
+        run: cp docs-site/index.html ./site/index.html
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
