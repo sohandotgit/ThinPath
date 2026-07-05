@@ -7,7 +7,7 @@ A memory-efficient native iOS SVG renderer built with Swift and Core Graphics. N
 Add to `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/yourusername/ThinPath.git", branch: "main")
+.package(url: "https://github.com/sohandotgit/ThinPath.git", branch: "main")
 ```
 
 Or with Xcode: File → Add Packages → paste the repository URL.
