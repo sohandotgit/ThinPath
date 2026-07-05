@@ -12,6 +12,24 @@
   * { box-sizing: border-box; }
   body { margin: 0; }
   ::selection { background: #DFFF4F; color: #14140F; }
+
+  .tp-hero-grid { grid-template-columns: 1.15fr 0.85fr; }
+  .tp-start-grid { grid-template-columns: 0.8fr 1.2fr; }
+  .tp-why-grid { grid-template-columns: repeat(2, 1fr); }
+  .tp-features-grid, .tp-highlights-grid, .tp-docs-grid { grid-template-columns: repeat(3, 1fr); }
+
+  @media (max-width: 860px) {
+    .tp-hero-grid, .tp-start-grid { grid-template-columns: 1fr !important; }
+    .tp-features-grid, .tp-highlights-grid, .tp-docs-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  }
+
+  @media (max-width: 640px) {
+    .tp-navlink { display: none; }
+    .tp-features-grid, .tp-highlights-grid, .tp-docs-grid, .tp-why-grid { grid-template-columns: 1fr !important; }
+    .tp-pad-section { padding-left: 20px !important; padding-right: 20px !important; }
+    .tp-hero-pad { padding: 48px 20px 40px !important; }
+    .tp-card-pad { padding: 28px !important; }
+  }
 </style>
 </head>
 <body>
@@ -30,16 +48,16 @@
       <span style="font-weight: 700; font-size: 19px; letter-spacing: -0.02em;">ThinPath</span>
     </div>
     <div style="display: flex; align-items: center; gap: 30px; font-size: 15px; font-weight: 500;">
-      <a href="#features" style="color: #14140F; text-decoration: none; opacity: 0.75;">Features</a>
-      <a href="#why" style="color: #14140F; text-decoration: none; opacity: 0.75;">Why</a>
-      <a href="#start" style="color: #14140F; text-decoration: none; opacity: 0.75;">Quick Start</a>
-      <a href="#docs" style="color: #14140F; text-decoration: none; opacity: 0.75;">Docs</a>
-      <a href="https://github.com/sohandotgit/ThinPath" style="text-decoration: none; color: #F6F4EC; background: #14140F; padding: 9px 18px; border-radius: 9px; font-weight: 600; border: 2px solid #14140F; box-shadow: 3px 3px 0 rgba(20,20,15,0.9);">GitHub ↗</a>
+      <a href="#features" class="tp-navlink" style="color: #14140F; text-decoration: none; opacity: 0.75;">Features</a>
+      <a href="#why" class="tp-navlink" style="color: #14140F; text-decoration: none; opacity: 0.75;">Why</a>
+      <a href="#start" class="tp-navlink" style="color: #14140F; text-decoration: none; opacity: 0.75;">Quick Start</a>
+      <a href="#docs" class="tp-navlink" style="color: #14140F; text-decoration: none; opacity: 0.75;">Docs</a>
+      <a href="https://github.com/sohandotgit/ThinPath" style="text-decoration: none; color: #F6F4EC; background: #14140F; padding: 9px 18px; border-radius: 9px; font-weight: 600; border: 2px solid #14140F; box-shadow: 3px 3px 0 rgba(20,20,15,0.9); white-space: nowrap;">GitHub ↗</a>
     </div>
   </nav>
 
   <!-- HERO -->
-  <header style="max-width: 1120px; margin: 0 auto; padding: 72px 28px 60px; display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 56px; align-items: center;">
+  <header class="tp-hero-grid tp-pad-section tp-hero-pad" style="max-width: 1120px; margin: 0 auto; padding: 72px 28px 60px; display: grid; gap: 56px; align-items: center;">
     <div>
       <div style="display: inline-flex; align-items: center; gap: 9px; border: 2px solid #14140F; border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 600; font-family: 'JetBrains Mono', monospace; margin-bottom: 30px;">
         <span style="width: 8px; height: 8px; background: #DFFF4F; border: 1.5px solid #14140F; border-radius: 999px;"></span>
@@ -136,12 +154,12 @@
   </header>
 
   <!-- SUPPORTED FEATURES -->
-  <section id="features" style="max-width: 1120px; margin: 0 auto; padding: 60px 28px;">
+  <section id="features" class="tp-pad-section" style="max-width: 1120px; margin: 0 auto; padding: 60px 28px;">
     <div style="display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 34px;">
       <h2 style="font-size: clamp(28px, 3.4vw, 40px); letter-spacing: -0.03em; font-weight: 700; margin: 0;">Renders what you draw.</h2>
       <p style="font-family: 'JetBrains Mono', monospace; font-size: 13px; opacity: 0.55; margin: 0;">// full SVG feature coverage</p>
     </div>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+    <div class="tp-features-grid" style="display: grid; gap: 16px;">
       <div style="border: 2px solid #14140F; border-radius: 14px; background: #FEFDFA; padding: 22px 22px 24px;">
         <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; opacity: 0.4; margin-bottom: 14px;">01</div>
         <div style="font-size: 20px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px;">Shapes &amp; Paths</div>
@@ -177,10 +195,10 @@
 
   <!-- WHY THINPATH -->
   <section id="why" style="background: #14140F; color: #F6F4EC;">
-    <div style="max-width: 1120px; margin: 0 auto; padding: 76px 28px;">
+    <div class="tp-pad-section" style="max-width: 1120px; margin: 0 auto; padding: 76px 28px;">
       <h2 style="font-size: clamp(30px, 3.8vw, 46px); letter-spacing: -0.03em; font-weight: 700; margin: 0 0 8px;">Why ThinPath</h2>
       <p style="font-size: 18px; opacity: 0.6; margin: 0 0 42px; max-width: 460px;">Built for developers who count allocations and measure frames.</p>
-      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1px; background: rgba(246,244,236,0.16); border: 1px solid rgba(246,244,236,0.16); border-radius: 16px; overflow: hidden;">
+      <div class="tp-why-grid" style="display: grid; gap: 1px; background: rgba(246,244,236,0.16); border: 1px solid rgba(246,244,236,0.16); border-radius: 16px; overflow: hidden;">
         <div style="background: #14140F; padding: 34px;">
           <div style="font-size: 34px; font-weight: 700; color: #DFFF4F; letter-spacing: -0.03em; margin-bottom: 10px;">~1 alloc</div>
           <div style="font-size: 19px; font-weight: 600; margin-bottom: 8px;">Memory efficient</div>
@@ -206,8 +224,8 @@
   </section>
 
   <!-- QUICK START -->
-  <section id="start" style="max-width: 1120px; margin: 0 auto; padding: 76px 28px;">
-    <div style="display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 48px; align-items: start;">
+  <section id="start" class="tp-pad-section" style="max-width: 1120px; margin: 0 auto; padding: 76px 28px;">
+    <div class="tp-start-grid" style="display: grid; gap: 48px; align-items: start;">
       <div>
         <h2 style="font-size: clamp(28px, 3.4vw, 42px); letter-spacing: -0.03em; font-weight: 700; margin: 0 0 16px;">Up and running in a few lines.</h2>
         <p style="font-size: 17px; line-height: 1.5; opacity: 0.72; margin: 0 0 24px;">Add the package, import the module, parse and render. No configuration, no bridging headers, no C++ toolchain.</p>
@@ -238,10 +256,10 @@
   </section>
 
   <!-- TECHNICAL HIGHLIGHTS -->
-  <section style="max-width: 1120px; margin: 0 auto; padding: 20px 28px 76px;">
+  <section class="tp-pad-section" style="max-width: 1120px; margin: 0 auto; padding: 20px 28px 76px;">
     <h2 style="font-size: clamp(28px, 3.4vw, 42px); letter-spacing: -0.03em; font-weight: 700; margin: 0 0 8px;">The memory model, plainly.</h2>
     <p style="font-size: 17px; opacity: 0.65; margin: 0 0 38px; max-width: 520px;">Most renderers scatter node objects across the heap. ThinPath doesn't.</p>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+    <div class="tp-highlights-grid" style="display: grid; gap: 20px;">
       <div style="border-top: 2px solid #14140F; padding-top: 18px;">
         <div style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; color: #14140F; background: #DFFF4F; display: inline-block; padding: 3px 8px; border-radius: 5px; border: 1.5px solid #14140F; margin-bottom: 14px;">ARENA</div>
         <div style="font-size: 21px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px;">One buffer, whole tree</div>
@@ -261,13 +279,13 @@
   </section>
 
   <!-- DOCS -->
-  <section id="docs" style="max-width: 1120px; margin: 0 auto; padding: 0 28px 80px;">
-    <div style="border: 2px solid #14140F; border-radius: 20px; background: #FEFDFA; padding: 44px; box-shadow: 6px 6px 0 #14140F;">
+  <section id="docs" class="tp-pad-section" style="max-width: 1120px; margin: 0 auto; padding: 0 28px 80px;">
+    <div class="tp-card-pad" style="border: 2px solid #14140F; border-radius: 20px; background: #FEFDFA; padding: 44px; box-shadow: 6px 6px 0 #14140F;">
       <div style="display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 28px;">
         <h2 style="font-size: clamp(26px, 3vw, 36px); letter-spacing: -0.03em; font-weight: 700; margin: 0;">Read the docs.</h2>
         <p style="font-family: 'JetBrains Mono', monospace; font-size: 13px; opacity: 0.5; margin: 0;">// everything is documented</p>
       </div>
-      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
+      <div class="tp-docs-grid" style="display: grid; gap: 16px;">
         <a href="./docs/documentation/thinpath/" style="text-decoration: none; color: #14140F; border: 2px solid #14140F; border-radius: 12px; padding: 22px; display: block;">
           <div style="font-size: 18px; font-weight: 700; margin-bottom: 6px;">API Reference <span style="opacity:0.4;">↗</span></div>
           <div style="font-size: 14px; line-height: 1.45; opacity: 0.65;">Every entry point, type, and usage snippet, generated with DocC.</div>
