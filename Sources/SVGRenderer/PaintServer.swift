@@ -119,9 +119,8 @@ public struct SolidPaint: PaintSource {
 
     public func fill(path: CGPath, rule: FillRule, objectBounds: CGRect,
                      alpha: CGFloat, into context: RenderContext) {
-        // TODO(render-thread): setFillColor(color * alpha); addPath; fillPath(rule).
-        // The single cheap case — no layer, no clip, no coordinate mapping.
-        _ = (path, rule, objectBounds, alpha, context)
+        _ = objectBounds   // solid color needs no coordinate mapping
+        ShapeRenderer.fillSolid(self, path: path, rule: rule, alpha: alpha, into: context)
     }
 }
 
@@ -137,36 +136,8 @@ public struct GradientPaint: PaintSource {
 
     public func fill(path: CGPath, rule: FillRule, objectBounds: CGRect,
                      alpha: CGFloat, into context: RenderContext) {
-        // TODO(render-thread):
-        //  1. Resolve the effective Gradient by folding `template` (href) chain —
-        //     use ReferenceResolver.hasTemplateCycle to bail on a cycle.
-        //  2. space = PaintCoordinateSpace(units:, serverTransform: gradientTransform,
-        //     objectBounds:). If space.serverToUser == nil → paint absent, return.
-        //  3. Clip CG to `path` (rule), then draw the gradient. `drawLinearGradient`/
-        //     `drawRadialGradient` take user-space points; map the server geometry
-        //     endpoints/centre through space.serverToUser.
-        //  4. spreadMethod:
-        //       - .pad     → omit `.drawsBefore/AfterLocation` (CG pads by default).
-        //       - .reflect → build a stop list mirrored across periods.
-        //       - .repeat  → build a stop list repeated across periods.
-        //     Extend only across the periods that intersect the current clip ∩
-        //     dirty region (see realizedSpreadStops) — never the whole plane.
-        //  5. Fold `alpha` and each stop's premultiplied alpha into the CG colours.
-        _ = (path, rule, objectBounds, alpha, context, node)
-    }
-
-    /// Build the extended stop array that realizes reflect/repeat over exactly the
-    /// visible periods. For `.pad` this is the stops unchanged.
-    ///
-    /// PROFILE-CHECK (spread-stops): a gradient whose period is tiny relative to a
-    /// large visible region generates many synthetic stops. Confirm the period
-    /// count is clamped by the clip ∩ dirty extent (not the canvas) and that the
-    /// synthetic-stop count has a sane cap.
-    func realizedSpreadStops(_ stops: [GradientStop], spread: SpreadMethod,
-                             visiblePeriods: Int) -> [GradientStop] {
-        // TODO(render-thread): implement pad/reflect/repeat expansion.
-        _ = (spread, visiblePeriods)
-        return stops
+        GradientRenderer.fill(node: node, path: path, rule: rule, objectBounds: objectBounds,
+                              alpha: alpha, into: context)
     }
 }
 
@@ -181,18 +152,8 @@ public struct PatternPaint: PaintSource {
 
     public func fill(path: CGPath, rule: FillRule, objectBounds: CGRect,
                      alpha: CGFloat, into context: RenderContext) {
-        // TODO(render-thread):
-        //  1. Resolve the effective Pattern (fold `template` href chain; cycle-guard).
-        //  2. Tile rect: (x,y,width,height) mapped via patternUnits
-        //     (objectBoundingBox → ObjectBoundingBox.transform(objectBounds)).
-        //  3. Content matrix: patternContentUnits + optional viewBox/PAR
-        //     (ViewportMath) positions the child subtree within one tile.
-        //  4. Create a CGPattern whose drawPattern callback re-walks the pattern's
-        //     children (via a RenderWalk into the tile-local context) ONCE PER
-        //     CELL — this is the whole memory point: no giant pre-tiled bitmap.
-        //  5. Set it as the fill pattern (pattern colour space), clip to `path`,
-        //     fill. patternTransform is composed into the pattern matrix.
-        _ = (path, rule, objectBounds, alpha, context, node)
+        PatternRenderer.fill(node: node, path: path, rule: rule, objectBounds: objectBounds,
+                             alpha: alpha, into: context)
     }
 }
 

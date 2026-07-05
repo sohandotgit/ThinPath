@@ -1,0 +1,214 @@
+<!--
+  Memory-stress corpus (not asserted by RenderTests.swift): 40 nested
+  <mask>-wrapped groups, each forcing its own isolation layer + mask scratch
+  surface (Compositing.md §6 PROFILE-CHECK nested-mask). Confirm every layer
+  is clamped to the masked content's bounds (not the full canvas) and that
+  scratch surfaces are released as soon as each level composites, so peak
+  memory does not scale with LAYERS x canvas-size.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <rect x="0" y="0" width="200" height="200" fill="#101010"/>
+  <defs>
+    <mask id="m0" maskUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="200" height="200" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m1" maskUnits="userSpaceOnUse">
+      <rect x="1" y="1" width="198" height="198" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m2" maskUnits="userSpaceOnUse">
+      <rect x="2" y="2" width="196" height="196" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m3" maskUnits="userSpaceOnUse">
+      <rect x="3" y="3" width="194" height="194" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m4" maskUnits="userSpaceOnUse">
+      <rect x="4" y="4" width="192" height="192" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m5" maskUnits="userSpaceOnUse">
+      <rect x="5" y="5" width="190" height="190" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m6" maskUnits="userSpaceOnUse">
+      <rect x="6" y="6" width="188" height="188" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m7" maskUnits="userSpaceOnUse">
+      <rect x="7" y="7" width="186" height="186" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m8" maskUnits="userSpaceOnUse">
+      <rect x="8" y="8" width="184" height="184" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m9" maskUnits="userSpaceOnUse">
+      <rect x="9" y="9" width="182" height="182" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m10" maskUnits="userSpaceOnUse">
+      <rect x="10" y="10" width="180" height="180" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m11" maskUnits="userSpaceOnUse">
+      <rect x="11" y="11" width="178" height="178" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m12" maskUnits="userSpaceOnUse">
+      <rect x="12" y="12" width="176" height="176" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m13" maskUnits="userSpaceOnUse">
+      <rect x="13" y="13" width="174" height="174" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m14" maskUnits="userSpaceOnUse">
+      <rect x="14" y="14" width="172" height="172" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m15" maskUnits="userSpaceOnUse">
+      <rect x="15" y="15" width="170" height="170" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m16" maskUnits="userSpaceOnUse">
+      <rect x="16" y="16" width="168" height="168" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m17" maskUnits="userSpaceOnUse">
+      <rect x="17" y="17" width="166" height="166" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m18" maskUnits="userSpaceOnUse">
+      <rect x="18" y="18" width="164" height="164" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m19" maskUnits="userSpaceOnUse">
+      <rect x="19" y="19" width="162" height="162" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m20" maskUnits="userSpaceOnUse">
+      <rect x="20" y="20" width="160" height="160" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m21" maskUnits="userSpaceOnUse">
+      <rect x="21" y="21" width="158" height="158" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m22" maskUnits="userSpaceOnUse">
+      <rect x="22" y="22" width="156" height="156" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m23" maskUnits="userSpaceOnUse">
+      <rect x="23" y="23" width="154" height="154" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m24" maskUnits="userSpaceOnUse">
+      <rect x="24" y="24" width="152" height="152" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m25" maskUnits="userSpaceOnUse">
+      <rect x="25" y="25" width="150" height="150" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m26" maskUnits="userSpaceOnUse">
+      <rect x="26" y="26" width="148" height="148" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m27" maskUnits="userSpaceOnUse">
+      <rect x="27" y="27" width="146" height="146" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m28" maskUnits="userSpaceOnUse">
+      <rect x="28" y="28" width="144" height="144" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m29" maskUnits="userSpaceOnUse">
+      <rect x="29" y="29" width="142" height="142" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m30" maskUnits="userSpaceOnUse">
+      <rect x="30" y="30" width="140" height="140" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m31" maskUnits="userSpaceOnUse">
+      <rect x="31" y="31" width="138" height="138" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m32" maskUnits="userSpaceOnUse">
+      <rect x="32" y="32" width="136" height="136" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m33" maskUnits="userSpaceOnUse">
+      <rect x="33" y="33" width="134" height="134" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m34" maskUnits="userSpaceOnUse">
+      <rect x="34" y="34" width="132" height="132" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m35" maskUnits="userSpaceOnUse">
+      <rect x="35" y="35" width="130" height="130" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m36" maskUnits="userSpaceOnUse">
+      <rect x="36" y="36" width="128" height="128" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m37" maskUnits="userSpaceOnUse">
+      <rect x="37" y="37" width="126" height="126" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m38" maskUnits="userSpaceOnUse">
+      <rect x="38" y="38" width="124" height="124" fill="#FFFFFF"/>
+    </mask>
+    <mask id="m39" maskUnits="userSpaceOnUse">
+      <rect x="39" y="39" width="122" height="122" fill="#FFFFFF"/>
+    </mask>
+  </defs>
+  <g mask="url(#m0)">
+    <g mask="url(#m1)">
+      <g mask="url(#m2)">
+        <g mask="url(#m3)">
+          <g mask="url(#m4)">
+            <g mask="url(#m5)">
+              <g mask="url(#m6)">
+                <g mask="url(#m7)">
+                  <g mask="url(#m8)">
+                    <g mask="url(#m9)">
+                      <g mask="url(#m10)">
+                        <g mask="url(#m11)">
+                          <g mask="url(#m12)">
+                            <g mask="url(#m13)">
+                              <g mask="url(#m14)">
+                                <g mask="url(#m15)">
+                                  <g mask="url(#m16)">
+                                    <g mask="url(#m17)">
+                                      <g mask="url(#m18)">
+                                        <g mask="url(#m19)">
+                                          <g mask="url(#m20)">
+                                            <g mask="url(#m21)">
+                                              <g mask="url(#m22)">
+                                                <g mask="url(#m23)">
+                                                  <g mask="url(#m24)">
+                                                    <g mask="url(#m25)">
+                                                      <g mask="url(#m26)">
+                                                        <g mask="url(#m27)">
+                                                          <g mask="url(#m28)">
+                                                            <g mask="url(#m29)">
+                                                              <g mask="url(#m30)">
+                                                                <g mask="url(#m31)">
+                                                                  <g mask="url(#m32)">
+                                                                    <g mask="url(#m33)">
+                                                                      <g mask="url(#m34)">
+                                                                        <g mask="url(#m35)">
+                                                                          <g mask="url(#m36)">
+                                                                            <g mask="url(#m37)">
+                                                                              <g mask="url(#m38)">
+                                                                                <g mask="url(#m39)">
+                                                                                  <rect x="0" y="0" width="200" height="200" fill="#00CED1"/>
+                                                                                </g>
+                                                                              </g>
+                                                                            </g>
+                                                                          </g>
+                                                                        </g>
+                                                                      </g>
+                                                                    </g>
+                                                                  </g>
+                                                                </g>
+                                                              </g>
+                                                            </g>
+                                                          </g>
+                                                        </g>
+                                                      </g>
+                                                    </g>
+                                                  </g>
+                                                </g>
+                                              </g>
+                                            </g>
+                                          </g>
+                                        </g>
+                                      </g>
+                                    </g>
+                                  </g>
+                                </g>
+                              </g>
+                            </g>
+                          </g>
+                        </g>
+                      </g>
+                    </g>
+                  </g>
+                </g>
+              </g>
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

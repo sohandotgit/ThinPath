@@ -1,0 +1,10 @@
+<!--
+Exact spot-pixel case: a circle of radius 30 centered at (50,50) on a white canvas.
+  - (50,50) center -> exactly #0000FFFF (deep inside).
+  - (5,5) corner -> exactly white (outside the circle by a wide margin: distance
+    from center is sqrt(45^2+45^2) ~= 63.6 > 30).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <circle cx="50" cy="50" r="30" fill="#0000FF"/>
+</svg>

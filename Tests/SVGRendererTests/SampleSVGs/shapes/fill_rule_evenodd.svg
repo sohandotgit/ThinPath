@@ -1,0 +1,15 @@
+<!--
+Fill-rule exact case (evenodd). Identical geometry to fill_rule_nonzero.svg (two
+same-winding rectangle subpaths, outer [10,10]-[90,90], inner [30,30]-[70,70]) but
+with fill-rule="evenodd". A ray from outside to the center crosses the outer and
+inner boundaries once each (2 crossings, even), so the inner region is a HOLE.
+  - (50,50) center of the inner rect -> exactly white background #FFFFFFFF
+    (background shows through), the opposite of fill_rule_nonzero.svg at the
+    same coordinate.
+  - (20,20) is inside the outer ring only (1 crossing, odd) -> exactly #000000FF.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <path fill-rule="evenodd" fill="#000000"
+        d="M10,10 L90,10 L90,90 L10,90 Z M30,30 L70,30 L70,70 L30,70 Z"/>
+</svg>

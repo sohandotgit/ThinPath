@@ -1,0 +1,19 @@
+<!--
+Golden case: a basic luminance mask — a white-to-black radial gradient mask
+applied to a solid rect, so the rect should visibly fade out toward its edges.
+Exercises the mask isolation layer + luminance conversion (Compositing.md §6,
+RenderPipeline §4-5).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#222222"/>
+  <defs>
+    <radialGradient id="mg" cx="50" cy="50" r="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#000000"/>
+    </radialGradient>
+    <mask id="m" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="100" height="100" fill="url(#mg)"/>
+    </mask>
+  </defs>
+  <rect x="0" y="0" width="100" height="100" fill="#FF4500" mask="url(#m)"/>
+</svg>

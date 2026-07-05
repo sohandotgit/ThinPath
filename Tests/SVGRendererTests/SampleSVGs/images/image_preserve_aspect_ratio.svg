@@ -1,0 +1,10 @@
+<!--
+Golden case: an embedded image whose intrinsic aspect ratio (2:1) differs from
+its destination rect (1:1), with preserveAspectRatio="xMidYMid meet" -> the
+image should be letterboxed (scaled to fit, centered), not stretched.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+  <rect x="0" y="0" width="80" height="80" fill="#CCCCCC"/>
+  <image x="10" y="10" width="60" height="60" preserveAspectRatio="xMidYMid meet"
+         href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAACCAYAAAB/qH1jAAAAFklEQVR42mP438PwH4Tl5OTAmAFdAAAXXw+NaFEyMQAAAABJRU5ErkJggg=="/>
+</svg>

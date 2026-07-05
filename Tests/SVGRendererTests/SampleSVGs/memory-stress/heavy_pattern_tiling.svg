@@ -1,0 +1,19 @@
+<!--
+Memory-stress corpus (not asserted by RenderTests.swift): a 2x2 user-unit
+pattern tile filling a 2000x2000 area -> up to 1,000,000 tile cells. Exercises
+the "CGPattern draws vector content per cell, never a giant pre-rendered bitmap"
+decision (Compositing.md §4, PROFILE-CHECK pattern-tile-memory). A correct
+implementation's memory footprint should be roughly constant regardless of the
+fill area; a naive one that rasterizes the whole pattern into one bitmap will
+blow up here.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 2000 2000">
+  <rect x="0" y="0" width="2000" height="2000" fill="#FFFFFF"/>
+  <defs>
+    <pattern id="p" x="0" y="0" width="2" height="2" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="1" height="1" fill="#000000"/>
+      <rect x="1" y="1" width="1" height="1" fill="#000000"/>
+    </pattern>
+  </defs>
+  <rect x="0" y="0" width="2000" height="2000" fill="url(#p)"/>
+</svg>

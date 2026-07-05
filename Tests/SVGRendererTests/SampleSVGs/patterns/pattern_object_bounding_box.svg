@@ -1,0 +1,17 @@
+<!--
+Golden case: patternUnits="objectBoundingBox" — the tile size is a fraction of
+the filled element's own bounding box (here 0.25 x 0.25, i.e. a 4x4 tile grid),
+so differently-sized rects sharing this pattern show a different absolute tile
+size but the same relative (4x4) tiling.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="100" viewBox="0 0 160 100">
+  <rect x="0" y="0" width="160" height="100" fill="#FFFFFF"/>
+  <defs>
+    <pattern id="p" x="0" y="0" width="0.25" height="0.25" patternUnits="objectBoundingBox">
+      <rect x="0" y="0" width="1" height="1" fill="#FFF8DC"/>
+      <circle cx="0.5" cy="0.5" r="0.4" fill="#DA70D6"/>
+    </pattern>
+  </defs>
+  <rect x="10" y="10" width="60" height="60" fill="url(#p)"/>
+  <rect x="90" y="20" width="60" height="40" fill="url(#p)"/>
+</svg>

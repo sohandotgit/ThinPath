@@ -1,0 +1,13 @@
+<!--
+Exact spot-pixel case: viewBox establishes a 2x scale from user space to the
+100x100 render target (viewBox is 50x50). Rect [10,10]-[30,30] in viewBox/user
+space maps to device pixels [20,20]-[60,60].
+  - device (40,40) -> maps back to user (20,20), inside the rect -> exactly
+    #0000FFFF.
+  - device (5,5) -> maps back to user (2.5,2.5), outside the rect -> exactly
+    white background #FFFFFFFF.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 50 50">
+  <rect x="0" y="0" width="50" height="50" fill="#FFFFFF"/>
+  <rect x="10" y="10" width="20" height="20" fill="#0000FF"/>
+</svg>

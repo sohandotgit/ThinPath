@@ -1,0 +1,11 @@
+<!--
+Golden case: a base64 data-URI embedded raster image (2x2 four-color flag PNG),
+scaled up into a 60x60 destination rect. Raster resampling policy (nearest vs
+bilinear) is a render-thread decision, so this is a tolerance-based golden
+rather than a spot-pixel test even though the source image is simple.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+  <rect x="0" y="0" width="80" height="80" fill="#FFFFFF"/>
+  <image x="10" y="10" width="60" height="60"
+         href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFklEQVR42mP4z8Dwn6EBiIE0EDD8BwBB1gh59FS4CQAAAABJRU5ErkJggg=="/>
+</svg>

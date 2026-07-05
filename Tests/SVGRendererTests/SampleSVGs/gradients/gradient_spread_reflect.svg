@@ -1,0 +1,17 @@
+<!--
+Golden case: spreadMethod="reflect" with a short gradient vector relative to the
+fill region, forcing Core Graphics's native pad behaviour to be overridden by
+synthesized mirrored stops (Compositing.md §5). A pure `pad` renderer would show
+solid end colors past the vector; a correct `reflect` renderer shows a repeating
+mirrored ramp across the whole rect.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="60" viewBox="0 0 120 60">
+  <rect x="0" y="0" width="120" height="60" fill="#FFFFFF"/>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="20" y2="0" gradientUnits="userSpaceOnUse" spreadMethod="reflect">
+      <stop offset="0" stop-color="#FFD700"/>
+      <stop offset="1" stop-color="#8B0000"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="120" height="60" fill="url(#g)"/>
+</svg>

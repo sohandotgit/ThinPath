@@ -1,0 +1,16 @@
+<!--
+Golden case: a basic left-to-right linear gradient (userSpaceOnUse), red -> blue,
+filling a rect. Gradient ramps are smooth (no hard pixel-exact answer at
+arbitrary points once color-space interpolation is considered), so this is
+compared against a reference PNG with tolerance.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80" viewBox="0 0 120 80">
+  <rect x="0" y="0" width="120" height="80" fill="#FFFFFF"/>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="120" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF0000"/>
+      <stop offset="1" stop-color="#0000FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="10" y="10" width="100" height="60" fill="url(#g)"/>
+</svg>

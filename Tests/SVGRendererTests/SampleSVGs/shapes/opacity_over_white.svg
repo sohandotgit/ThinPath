@@ -1,0 +1,13 @@
+<!--
+Exact spot-pixel case: element opacity=0.5 with a pure-red fill over an opaque
+white canvas. Source-over compositing gives a closed-form answer:
+  result = src * alpha + dst * (1 - alpha)
+  R = 255*0.5 + 255*0.5 = 255
+  G = 0*0.5   + 255*0.5 = 127.5  (assert with a tolerance of 1 to absorb rounding)
+  B = 0*0.5   + 255*0.5 = 127.5
+  - (50,50) -> approximately #FF7F7FFF (tolerance 1 per channel).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <rect x="20" y="20" width="60" height="60" fill="#FF0000" opacity="0.5"/>
+</svg>

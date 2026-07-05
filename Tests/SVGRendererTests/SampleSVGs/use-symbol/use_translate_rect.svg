@@ -1,0 +1,16 @@
+<!--
+Exact spot-pixel case: <use> instances a template rect at an offset. The
+template lives under <defs> (never painted directly); only the <use> instance
+should produce pixels.
+  - (15,15) is inside the ORIGINAL template rect's coordinates [10,10]-[30,30],
+    but the template is under <defs> and must not be painted -> exactly white.
+  - (55,55) is inside the <use> instance (translated by x=40,y=40, so the
+    instance occupies [50,50]-[70,70]) -> exactly #FF00FFFF.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <defs>
+    <rect id="tpl" x="10" y="10" width="20" height="20" fill="#FF00FF"/>
+  </defs>
+  <use href="#tpl" x="40" y="40"/>
+</svg>

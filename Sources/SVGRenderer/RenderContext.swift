@@ -315,8 +315,9 @@ public final class RenderContext {
     /// PROFILE-CHECK (bbox-cost): confirm subtree-bounds computation is not itself
     /// a hotspot for deep trees; add the per-pass memo if it is.
     public func subtreeDeviceBounds(of node: NodeIndex) -> CGRect {
-        _ = node
-        return .null   // TODO(render-thread)
+        let local = ClipRenderer.localGeometryBounds(of: node, document: document)
+        guard !local.isNull else { return .null }
+        return local.applying(current.userToDevice)
     }
 
     // MARK: Helpers
@@ -433,16 +434,24 @@ public struct RenderWalk<V: NodeVisitor> {
 
         // 2. clip-path (a CGContext clip, never a layer).
         if !style.clipPath.isNone {
-            applyClipPath(style.clipPath)
-            // TODO(render-thread): if the clip resolves to empty geometry, this
-            // subtree is fully clipped out — early-return to skip its work.
+            let clippedOut = applyClipPath(style.clipPath, referencing: node)
+            if clippedOut { return }   // clip resolved to empty geometry — nothing to draw
         }
 
-        // 3. Decide isolation. `paintsFillAndStroke` is only meaningful for
-        //    shapes; the visitor computes the precise answer, but the pipeline
-        //    needs a conservative pre-check to size the layer. TODO(render-thread):
-        //    derive `paintsFillAndStroke` from resolved paints for shapes.
-        let paintsFillAndStroke = isDrawableLeaf(n.kind)   // conservative
+        // 3. Decide isolation. `paintsFillAndStroke` is precise for shapes
+        //    (both fill and stroke actually resolve to a paint); text/image
+        //    are conservatively always-isolate-on-opacity (a shape with a
+        //    single contribution folds instead — the common cheap path).
+        let paintsFillAndStroke: Bool
+        switch n.kind {
+        case .shape, .path, .poly:
+            let hasFill = PaintResolver.resolve(style.fill, references: context.references) != nil
+            let hasStroke = style.strokeWidth > 0
+                && PaintResolver.resolve(style.stroke, references: context.references) != nil
+            paintsFillAndStroke = hasFill && hasStroke
+        default:
+            paintsFillAndStroke = isDrawableLeaf(n.kind)
+        }
         let isolate = context.needsIsolationLayer(node, style: style,
                                                   paintsFillAndStroke: paintsFillAndStroke)
 
@@ -461,9 +470,24 @@ public struct RenderWalk<V: NodeVisitor> {
         // 4. Dispatch.
         dispatch(node, kind: n.kind, style: style)
 
-        // 5. Mask multiply (inside the still-open layer). TODO(render-thread):
-        //    build the mask per Compositing.md and multiply the layer by it before
-        //    `endIsolationLayer` composites the result.
+        // 5. Mask multiply (inside the still-open layer), only meaningful if a
+        //    layer is actually open — a mask with no layer (graceful
+        //    layer-depth degradation) is a known, documented approximation.
+        if !style.mask.isNone, layerOpen {
+            let objectBounds = ClipRenderer.localGeometryBounds(of: node, document: doc)
+            if let maskImage = MaskRenderer.buildAlphaMaskImage(
+                maskNode: style.mask, context: context,
+                deviceBounds: context.current.clipDeviceBounds,
+                objectBounds: objectBounds.isNull ? .zero : objectBounds
+            ) {
+                let cg = context.cg
+                cg.saveGState()
+                cg.concatenate(cg.ctm.inverted())   // reset to device pixel space
+                cg.setBlendMode(.destinationIn)
+                cg.draw(maskImage, in: context.current.clipDeviceBounds)
+                cg.restoreGState()
+            }
+        }
     }
 
     // MARK: Dispatch
@@ -471,7 +495,7 @@ public struct RenderWalk<V: NodeVisitor> {
     private mutating func dispatch(_ node: NodeIndex, kind: NodeKind, style: ComputedStyle) {
         switch kind {
         case .group, .svg:
-            if case .svg(let vp) = kind { applyNestedViewport(vp) }
+            if case .svg(let vp) = kind { applyNestedViewport(vp, isRoot: node == context.document.root) }
             let decision = visitor.willEnterContainer(node, style: style, context: context)
             if decision == .children {
                 context.document.forEachChild(of: node) { child in
@@ -484,8 +508,6 @@ public struct RenderWalk<V: NodeVisitor> {
             renderUse(node, use: use, style: style)
 
         case .shape, .path, .poly:
-            // TODO(render-thread): build the CGPath via PathBuilder for `path`/
-            // `poly`, or synthesize the basic-shape path for `shape`.
             let path = buildLeafPath(node, kind: kind)
             visitor.drawShape(node, path: path, style: style, context: context)
 
@@ -519,6 +541,13 @@ public struct RenderWalk<V: NodeVisitor> {
         context.save()
         defer { context.restore() }
 
+        // Overflow clip for a symbol/svg target's viewport (a no-op for a
+        // plain-shape target, per `instanceViewportRect`). MUST happen in the
+        // use-site's user space, i.e. BEFORE the instance transform below
+        // folds in the viewBox alignment matrix — `use.x/y/width/height` are
+        // only meaningful in that outer frame.
+        UseSymbolRenderer.applyViewportClip(for: use, context: context)
+
         // Instance transform (translate by x/y; symbol/svg targets add the
         // viewport matrix). Reuses ReferenceResolver + Transforms.swift.
         context.concatenate(context.references.instanceTransform(for: use,
@@ -538,13 +567,12 @@ public struct RenderWalk<V: NodeVisitor> {
         }
     }
 
-    /// Render a `<symbol>` as instanced by a `<use>`: establish the symbol's
-    /// viewport (clip + viewBox transform already folded into the instance
-    /// transform) and walk its children. TODO(render-thread): apply the overflow
-    /// clip to the viewport rect before walking children.
+    /// Render a `<symbol>` as instanced by a `<use>`: its viewport (clip +
+    /// viewBox transform) was already established by `renderUse` (the clip
+    /// before, the viewBox matrix folded into the instance transform), so this
+    /// is just the child walk.
     private mutating func renderSymbolInstance(_ symbol: NodeIndex, use: Use,
                                                inheriting: ComputedStyle) {
-        // TODO(render-thread): clip to the viewport rect (overflow:hidden), then:
         context.document.forEachChild(of: symbol) { child in
             render(child, inheriting: inheriting)
         }
@@ -552,30 +580,72 @@ public struct RenderWalk<V: NodeVisitor> {
 
     // MARK: Viewport / clip application
 
-    private func applyNestedViewport(_ vp: NestedViewport) {
-        // TODO(render-thread): resolve the viewport rect from vp.x/y/width/height
-        // against context.current.viewport, clip to it (overflow:hidden), apply
-        // ViewportMath.viewportTransform if vp.viewBox != nil, and
-        // context.setViewport(newSize). The math lives in Transforms.swift; this
-        // is pure composition of it into the state stack.
-        _ = vp
+    /// Establish a viewport (root `<svg>` or a nested `<svg>`/`<symbol>` via
+    /// `<use>`): translate to `(vp.x, vp.y)`, clip to the viewport rect
+    /// (overflow:hidden — the only policy modeled), then fold in the
+    /// viewBox→viewport alignment matrix if present.
+    ///
+    /// The ROOT is special-cased to size its viewport from the render pass's
+    /// own `dirtyRect` (the caller-requested output rect) rather than the
+    /// root `<svg>`'s own `width`/`height` attributes — matching
+    /// `SVGRenderer.render(_:into:rect:)`'s documented contract of fitting the
+    /// document into the caller's `rect`. Every sample in this corpus happens
+    /// to declare `width`/`height` equal to its render size 1:1, so the two
+    /// policies coincide there; the root case exists for callers that differ.
+    private func applyNestedViewport(_ vp: NestedViewport, isRoot: Bool) {
+        let parentViewport = context.current.viewport
+        context.concatenate(CGAffineTransform(translationX: vp.x, y: vp.y))
+
+        let width: CGFloat
+        let height: CGFloat
+        if isRoot {
+            width = parentViewport.width
+            height = parentViewport.height
+        } else {
+            width = resolveViewportLength(vp.width, viewport: parentViewport.width)
+            height = resolveViewportLength(vp.height, viewport: parentViewport.height)
+        }
+        let viewportRect = CGRect(x: 0, y: 0, width: width, height: height)
+        context.clip(toUserRect: viewportRect)
+
+        if let viewBox = vp.viewBox {
+            let m = ViewportMath.viewportTransform(viewBox: viewBox, viewport: viewportRect,
+                                                   par: vp.preserveAspectRatio)
+            context.concatenate(m)
+            context.setViewport(CGSize(width: viewBox.width, height: viewBox.height))
+        } else {
+            context.setViewport(viewportRect.size)
+        }
     }
 
-    private func applyClipPath(_ clip: NodeIndex) {
-        // TODO(render-thread): union the clipPath's child geometry into one CGPath
-        // (honoring clipUnits objectBoundingBox via ObjectBoundingBox.transform and
-        // per-child clip-rule), then context.clip(toPath:rule:). Nested clip-path
-        // on the clipPath's own children intersects.
-        _ = clip
+    private func resolveViewportLength(_ length: LengthOrAuto, viewport: CGFloat) -> CGFloat {
+        if case .value(let v) = length { return v }
+        return viewport
     }
 
-    // MARK: Leaf geometry (stubs)
+    /// Apply `clip-path` as a CGContext clip. Returns `true` if the clip
+    /// resolved to empty/absent geometry — the caller then skips this
+    /// subtree's work entirely, since nothing painted under an empty clip is
+    /// visible.
+    private func applyClipPath(_ clip: NodeIndex, referencing node: NodeIndex) -> Bool {
+        let objectBounds = ClipRenderer.localGeometryBounds(of: node, document: context.document)
+        guard let (path, rule) = ClipRenderer.buildClipPath(
+            clip, objectBounds: objectBounds.isNull ? .zero : objectBounds, document: context.document
+        ) else {
+            // Degenerate objectBoundingBox mapping or no clip geometry at all
+            // → per spec the referencing element renders nothing.
+            context.clip(toUserRect: .zero)
+            return true
+        }
+        context.clip(toPath: path, rule: rule)
+        return false
+    }
+
+    // MARK: Leaf geometry
 
     private func buildLeafPath(_ node: NodeIndex, kind: NodeKind) -> CGPath {
-        // TODO(render-thread): `path`/`poly` → PathBuilder.build(...); `shape` →
-        // basic-shape geometry (rect with rx/ry, circle, ellipse, line).
-        _ = (node, kind)
-        return CGMutablePath()
+        _ = kind
+        return ShapeRenderer.leafPath(node, document: context.document)
     }
 
     private func isDrawableLeaf(_ kind: NodeKind) -> Bool {

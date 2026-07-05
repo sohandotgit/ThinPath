@@ -1,0 +1,12 @@
+<!--
+Fill-rule exact case (nonzero). Two same-winding (clockwise) rectangle subpaths:
+outer [10,10]-[90,90], inner [30,30]-[70,70]. Under nonzero, the inner region has
+winding count 2 (still nonzero) so the WHOLE area including the center is filled.
+  - (50,50) center of the inner rect -> exactly #000000FF (filled).
+Compare against fill_rule_evenodd.svg, which flips this exact pixel to background.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <path fill-rule="nonzero" fill="#000000"
+        d="M10,10 L90,10 L90,90 L10,90 Z M30,30 L70,30 L70,70 L30,70 Z"/>
+</svg>

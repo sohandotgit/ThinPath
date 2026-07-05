@@ -1,0 +1,12 @@
+<!--
+Exact spot-pixel case: a single flat-color rect on an opaque white canvas.
+Rect occupies user-space [20,60) x [20,60) in a 100x100 viewBox rendered 1:1.
+  - (40,40) is deep inside the rect -> exactly #FF0000FF.
+  - (10,10) and (90,90) are outside the rect -> exactly the white background #FFFFFFFF.
+No AA-sensitive pixels are sampled (all sample points are >=1px from any edge),
+so this must hold exactly regardless of anti-aliasing policy.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <rect x="20" y="20" width="40" height="40" fill="#FF0000"/>
+</svg>

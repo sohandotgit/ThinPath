@@ -1,0 +1,15 @@
+<!--
+Golden case: clip-path with curved geometry (a circle) and objectBoundingBox
+clipPathUnits, composited over a colored backdrop. The clip boundary is
+anti-aliased, so this is compared against a reference PNG with tolerance rather
+than asserted pixel-exact.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
+  <rect x="0" y="0" width="120" height="120" fill="#EEEEEE"/>
+  <defs>
+    <clipPath id="c" clipPathUnits="objectBoundingBox">
+      <circle cx="0.5" cy="0.5" r="0.4"/>
+    </clipPath>
+  </defs>
+  <rect x="10" y="10" width="100" height="100" fill="#3366CC" clip-path="url(#c)"/>
+</svg>

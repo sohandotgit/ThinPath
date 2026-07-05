@@ -1,0 +1,20 @@
+<!--
+Exact spot-pixel case: <symbol> establishes its own viewport (viewBox 50x50)
+which <use> instantiates at 100x100 -> 2x scale, exercising the nested-viewport
+code path (distinct from a root viewBox) with the same computable geometry as
+viewbox_scale_rect.svg. Rect [10,10]-[30,30] in symbol-space maps to device
+[20,20]-[60,60].
+  - (40,40) -> maps back to symbol-space (20,20), inside the rect -> exactly
+    #008080FF.
+  - (5,5) -> maps back to symbol-space (2.5,2.5), outside the rect -> exactly
+    white background.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <defs>
+    <symbol id="sym" viewBox="0 0 50 50">
+      <rect x="10" y="10" width="20" height="20" fill="#008080"/>
+    </symbol>
+  </defs>
+  <use href="#sym" x="0" y="0" width="100" height="100"/>
+</svg>

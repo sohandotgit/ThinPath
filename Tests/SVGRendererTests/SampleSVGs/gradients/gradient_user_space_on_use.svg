@@ -1,0 +1,17 @@
+<!--
+Golden case: userSpaceOnUse gradient units — the SAME gradient element, shared
+by two rects at different positions, must show a fixed, shared ramp anchored to
+the document's user space (not each rect's own bounds), the opposite behaviour
+of gradient_object_bounding_box.svg.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="100" viewBox="0 0 140 100">
+  <rect x="0" y="0" width="140" height="100" fill="#FFFFFF"/>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="140" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF0000"/>
+      <stop offset="1" stop-color="#0000FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="10" y="10" width="50" height="30" fill="url(#g)"/>
+  <rect x="70" y="50" width="60" height="40" fill="url(#g)"/>
+</svg>

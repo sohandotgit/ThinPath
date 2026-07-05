@@ -1,0 +1,17 @@
+<!--
+Exact spot-pixel case: a clip-path removes a known region rather than merely
+overlapping it visually. Black rect spans [10,10]-[90,90]; clipPath restricts
+painting to [30,30]-[70,70].
+  - (50,50) is inside both the rect and the clip -> exactly #000000FF.
+  - (15,15) is inside the rect but OUTSIDE the clip -> exactly white background
+    #FFFFFFFF (proves the clip actually removes paint, not just bounds a layer).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <defs>
+    <clipPath id="c" clipPathUnits="userSpaceOnUse">
+      <rect x="30" y="30" width="40" height="40"/>
+    </clipPath>
+  </defs>
+  <rect x="10" y="10" width="80" height="80" fill="#000000" clip-path="url(#c)"/>
+</svg>

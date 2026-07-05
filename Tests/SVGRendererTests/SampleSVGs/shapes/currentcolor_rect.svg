@@ -1,0 +1,11 @@
+<!--
+Exact spot-pixel case: fill="currentColor" resolves against the inherited `color`
+property (CascadeRules.md), not a literal paint value.
+  - (50,50) -> exactly #00FF00FF (the group's `color`, not black/default).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <g color="#00FF00">
+    <rect x="20" y="20" width="60" height="60" fill="currentColor"/>
+  </g>
+</svg>

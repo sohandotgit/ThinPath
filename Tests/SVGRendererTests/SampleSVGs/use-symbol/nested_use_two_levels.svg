@@ -1,0 +1,18 @@
+<!--
+Exact spot-pixel case: <use> of a <use> — offsets compose additively across both
+levels of instancing. Template rect [0,0]-[20,20]; the mid-level use offsets by
+(10,10) and is itself only defined under <defs> (never painted directly); the
+outer use instances the mid-level use with a further (30,30) offset.
+Net translation: (10+30, 10+30) = (40,40), so the rendered rect occupies
+[40,40]-[60,60].
+  - (50,50) -> exactly #FFA500FF (deep inside the final composed instance).
+  - (5,5) -> exactly white (the original un-instanced template must not paint).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <defs>
+    <rect id="tpl" x="0" y="0" width="20" height="20" fill="#FFA500"/>
+    <use id="mid" href="#tpl" x="10" y="10"/>
+  </defs>
+  <use href="#mid" x="30" y="30"/>
+</svg>
