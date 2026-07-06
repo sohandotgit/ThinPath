@@ -1,14 +1,11 @@
 # ThinPath
 
-A memory-first native SVG renderer for iOS, built directly on Core Graphics.
+[![Swift Package Manager compatible](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://swift.org/package-manager/)
+[![Swift](https://img.shields.io/badge/Swift-5.9%2B-orange.svg)](https://swift.org)
+[![Platform](https://img.shields.io/badge/platform-iOS%2013%2B-lightgrey.svg)](https://developer.apple.com/ios/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-<!--
-Badges to wire up (shields.io):
-- Swift Package Manager compatible
-- Platform: iOS 13+
-- Swift: 5.9+
-- License: MIT
--->
+A memory-first native SVG renderer for iOS, built directly on Core Graphics.
 
 ThinPath parses SVG into a flat, index-based intermediate representation and draws it straight to a `CGContext` — no node graph, no intermediate bitmaps, no third-party dependencies. It's built for apps that render many SVGs and can't afford the allocation churn or memory footprint of a pointer-linked DOM.
 
