@@ -24,9 +24,6 @@ import Foundation
 /// intended to be resilient: recoverable problems (an unknown element, a
 /// malformed attribute, an unresolvable `href`) are collected here rather than
 /// aborting the parse, so a document that is "mostly fine" still renders.
-///
-/// PROVISIONAL: fields will likely grow (e.g. a source location) once the
-/// parser thread defines its diagnostics model.
 public struct SVGParseError: Error, Equatable {
     public var message: String
     public init(message: String) {
@@ -41,19 +38,18 @@ public struct SVGParseError: Error, Equatable {
 /// does not necessarily mean the document is unusable — callers may choose to
 /// render anyway and surface `errors` as diagnostics.
 ///
-/// - Note: PROVISIONAL — unimplemented. Owned by the parsing thread.
+/// - Parameter data: Raw SVG document bytes.
+/// - Returns: The parsed ``SVGDocument`` and any non-fatal ``SVGParseError`` diagnostics.
 public func parse(data: Data) -> (document: SVGDocument, errors: [SVGParseError]) {
     SVGParser.parse(data: data)
 }
 
 // MARK: - Rendering entry point
 
-/// The top-level renderer: draws a parsed `SVGDocument` using Core Graphics.
+/// The top-level renderer: draws a parsed ``SVGDocument`` using Core Graphics.
 ///
-/// PROVISIONAL: this type intentionally has no stored configuration yet
-/// (color-space handling, caching, tile/async rendering are all open
-/// questions for the rendering thread). Treat it as the stable *name* and
-/// *call shape* downstream test code can compile against.
+/// Create a renderer with `init()`, then call one of its `render` methods to
+/// draw into an existing `CGContext` or produce a standalone `CGImage`.
 public struct ThinPath {
 
     public init() {}
@@ -61,9 +57,6 @@ public struct ThinPath {
     /// Draw `document` into an existing graphics context, filling `rect` in
     /// the context's coordinate space (the document's `viewBox`/intrinsic size
     /// is fit into `rect` per its `preserveAspectRatio`).
-    ///
-    /// See `ThinPath.swift` for the actual implementation (`RenderContext`
-    /// + `RenderWalk` + `DefaultVisitor`).
     public func render(_ document: SVGDocument, into context: CGContext, rect: CGRect) {
         SVGRootRenderer.render(document, into: context, rect: rect,
                                images: ImageCache(budgetBytes: SVGRootRenderer.defaultImageBudgetBytes))
@@ -72,8 +65,6 @@ public struct ThinPath {
     /// Convenience: rasterize `document` into a standalone `CGImage` at the
     /// given pixel `size` and `scale` (e.g. `scale: 2` for a @2x bitmap).
     /// Returns `nil` if the image could not be created (e.g. degenerate size).
-    ///
-    /// See `ThinPath.swift` for the actual implementation.
     public func render(_ document: SVGDocument, size: CGSize, scale: CGFloat = 1) -> CGImage? {
         SVGRootRenderer.render(document, size: size, scale: scale)
     }

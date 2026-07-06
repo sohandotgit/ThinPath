@@ -69,9 +69,11 @@ renderer.render(document, into: context, rect: bounds)
 
 ## Documentation
 
-- [API reference](https://sohandotgit.github.io/ThinPath/docs/documentation/thinpath/)
-- [Examples/](Examples/) — runnable snippets for batch rendering, custom views, and error handling
-- [Design/](Design/) — IR memory model, render pipeline, and cascade rules
+Full documentation is generated with DocC and hosted at [sohandotgit.github.io/ThinPath](https://sohandotgit.github.io/ThinPath/docs/documentation/thinpath/).
+
+- [API reference](https://sohandotgit.github.io/ThinPath/docs/documentation/thinpath/) — every entry point and type
+- [Design docs](https://sohandotgit.github.io/ThinPath/docs/documentation/thinpath/howitworks) — how the flat arena and compositing model work
+- [Examples](https://sohandotgit.github.io/ThinPath/docs/documentation/thinpath/gettingstarted) — copy-paste snippets for common rendering and integration scenarios
 
 ## Design Notes
 
