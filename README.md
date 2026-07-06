@@ -1,115 +1,88 @@
 # ThinPath
 
-A memory-efficient native iOS SVG renderer built with Swift and Core Graphics. No dependencies.
+A memory-first native SVG renderer for iOS, built directly on Core Graphics.
+
+<!--
+Badges to wire up (shields.io):
+- Swift Package Manager compatible
+- Platform: iOS 13+
+- Swift: 5.9+
+- License: MIT
+-->
+
+ThinPath parses SVG into a flat, index-based intermediate representation and draws it straight to a `CGContext` — no node graph, no intermediate bitmaps, no third-party dependencies. It's built for apps that render many SVGs and can't afford the allocation churn or memory footprint of a pointer-linked DOM.
+
+## Features
+
+- Renders directly into any `CGContext`, or rasterizes to a `CGImage`.
+- Flat arena IR: parsed documents are contiguous arrays, not a heap of node objects.
+- Shapes, groups, `<use>`/`<symbol>` instancing, nested viewports.
+- Solid fills, linear/radial gradients, and `<pattern>` fills.
+- Clip paths, masks, opacity, and blending modes.
+- Basic `<text>` with system fonts, and embedded/referenced `<image>` with on-demand decoding.
+- Full SVG transform support and `preserveAspectRatio` fitting.
+- Zero third-party dependencies.
+
+## Requirements
+
+- iOS 13+
+- Swift 5.9+
+- Xcode 15.0+ <!-- [TODO: confirm] -->
 
 ## Installation
 
-Add to `Package.swift`:
+### Swift Package Manager
+
+Add ThinPath to the `dependencies` in your `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/sohandotgit/ThinPath.git", branch: "main")
+.package(url: "https://github.com/sohandotgit/ThinPath.git", from: "1.0.0") // [TODO: confirm tagged release]
 ```
 
-Or with Xcode: File → Add Packages → paste the repository URL.
+Then add `"ThinPath"` to your target's dependencies.
+
+In Xcode, use **File → Add Package Dependencies…** and paste the repository URL:
+
+```
+https://github.com/sohandotgit/ThinPath.git
+```
 
 ## Quick Start
 
 ```swift
 import ThinPath
 
-// Parse SVG
-let svgData = try Data(contentsOf: url)
-let (document, errors) = parse(data: svgData)
-if !errors.isEmpty {
-    print("Parse warnings: \(errors)")
-}
+let data = try Data(contentsOf: url)
+let (document, _) = parse(data: data)
 
-// Render into a CGContext
 let renderer = ThinPath()
-renderer.render(document, into: context, rect: CGRect(x: 0, y: 0, width: 200, height: 200))
-
-// Or render directly to CGImage
 if let image = renderer.render(document, size: CGSize(width: 200, height: 200), scale: 2) {
     imageView.image = UIImage(cgImage: image)
 }
 ```
 
-## Supported SVG Features
+To draw into an existing context instead — e.g. from `draw(_:)`:
 
-### Shapes
-- `<path>`, `<line>`, `<polyline>`, `<polygon>`, `<rect>`, `<circle>`, `<ellipse>`
-
-### Structure
-- `<g>` (groups), `<svg>` (nested viewports), `<defs>`, `<use>` (instancing), `<symbol>`
-
-### Styling
-- Fill, stroke, opacity, display, visibility
-- Inherited CSS properties, inline `style` attributes
-- Color keywords and hex notation
-
-### Paint Servers
-- Solid fills and strokes
-- Linear gradients, radial gradients
-- `<pattern>` rasterization
-
-### Effects
-- Clipping paths (`<clipPath>`)
-- Masks (`<mask>`)
-- Opacity and blending modes
-
-### Text
-- Basic `<text>` rendering with system fonts
-- Font family, size, weight, style
-
-### Images
-- Embedded `<image>` with lazy decoding
-- External image references (via href)
-
-### Transforms
-- SVG transform attribute (`translate`, `rotate`, `scale`, `skewX`, `skewY`, `matrix`)
-- Nested `viewBox` and `preserveAspectRatio`
-
-## Unsupported / Stretch Goals
-
-- **SMIL Animation** — `<animate>`, `<animateMotion>`, `<set>` not implemented; see separate animation layer
-- **CSS Animations / Transitions** — requires CSS parsing and state management
-- **Advanced Filters** — `<filter>`, `<feGaussianBlur>`, etc. (significant Core Graphics integration)
-- **Scripting / Event Handlers** — `onload`, `onclick`, etc. (out of scope)
-- **Embedded Fonts** — `<style>` blocks and `@font-face` parsing deferred
-
-## Memory Efficiency
-
-ThinPath stores parsed SVG as a flat arena of contiguous arrays with integer indices, not a pointer-linked node graph. This design ensures:
-
-- **Zero allocation overhead per node** — no class instances, no retain cycles
-- **Cache-dense tree traversal** — linear memory scans, minimal pointer chasing
-- **Instant release** — dropping a document frees a handful of arrays directly
-- **Cheap instancing** — `<use>` copies reference a shape, not the shape itself
-
-Gradient stops, path commands, and text data live in shared side arenas, keeping individual node structs small and fixed-size.
-
-### Verified Assumptions
-
-See `Design/MemoryModel.md` for a full list of profiling checks (use-expansion cost, color depth, geometry precision, index overflow, string pool overhead, arena slack, node struct size).
+```swift
+renderer.render(document, into: context, rect: bounds)
+```
 
 ## Documentation
 
-- **Live docs:** https://sohandotgit.github.io/ThinPath/ (landing page); API reference at https://sohandotgit.github.io/ThinPath/docs/documentation/thinpath/
-- **[PublicAPI.md](PublicAPI.md)** — function signatures and code examples
-- **[Design/MemoryModel.md](Design/MemoryModel.md)** — IR architecture and layout reasoning
-- **[Design/RenderPipeline.md](Design/RenderPipeline.md)** — render walk and visitor pattern
-- **[Design/CascadeRules.md](Design/CascadeRules.md)** — style resolution and inheritance
-- **[Examples/](Examples/)** — runnable code snippets
+- [API reference](https://sohandotgit.github.io/ThinPath/docs/documentation/thinpath/)
+- [Examples/](Examples/) — runnable snippets for batch rendering, custom views, and error handling
+- [Design/](Design/) — IR memory model, render pipeline, and cascade rules
 
-Docs are built with [Swift-DocC](https://github.com/swiftlang/swift-docc-plugin) and deployed to GitHub Pages by `.github/workflows/docs.yml` on every push to `main`. To preview locally:
+## Design Notes
 
-```sh
-swift package --disable-sandbox preview-documentation --target ThinPath
-```
+The parsed IR is a flat arena of contiguous arrays addressed by integer indices — no class instances and no retain cycles, so dropping a document frees a handful of arrays. Path commands, points, and gradient stops live in shared side arenas, keeping node structs small and fixed-size. Image bitmaps are never retained by the document; they decode on demand at render scale, so long-lived documents stay lean. See [Design/MemoryModel.md](Design/MemoryModel.md) for the full rationale.
 
-This starts a local preview server (default `http://localhost:8000/documentation/thinpath/`) that live-reloads as you edit files under `Sources/ThinPath/ThinPath.docc/`.
+Not yet supported: SMIL/CSS animation, `<filter>` effects, scripting, and `@font-face` embedded fonts.
 
-## Requirements
+## Contributing
 
-- iOS 13+
-- Swift 5.9+
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) — please open an issue to discuss substantial changes before submitting a PR.
+
+## License
+
+ThinPath is available under the MIT License. See [LICENSE](LICENSE).
