@@ -1,0 +1,43 @@
+@Tutorial(time: 10) {
+    @Intro(title: "Load SVG Data from Any Source") {
+        ThinPath's `parse(data:)` takes raw `Data`, so you decide where the bytes come from. Build a small loader that reads SVGs from the app bundle, a file on disk, and a base64 `data:` URI.
+    }
+
+    @Section(title: "Read bytes from three sources") {
+        @ContentAndMedia {
+            You'll grow one `SVGLoader` type, adding a loading path in each step. Every path ends the same way: hand the bytes to `parse(data:)`.
+        }
+
+        @Steps {
+            @Step {
+                Create an `SVGLoader` enum to hold your loading helpers.
+                @Code(name: "SVGLoader.swift", file: "loading-01.swift")
+            }
+
+            @Step {
+                Load an SVG bundled with your app.
+                @Code(name: "SVGLoader.swift", file: "loading-02.swift")
+            }
+
+            @Step {
+                Load an SVG from a local file `URL` already on disk.
+                @Code(name: "SVGLoader.swift", file: "loading-03.swift")
+            }
+
+            @Step {
+                Decode an SVG delivered as a base64 `data:` URI, then parse the payload.
+                @Code(name: "SVGLoader.swift", file: "loading-04.swift")
+            }
+
+            @Step {
+                Fetch bytes from a remote URL yourself — ThinPath performs no network I/O — then parse them.
+                @Code(name: "SVGLoader.swift", file: "loading-05.swift")
+            }
+
+            @Step {
+                Surface parse warnings from the bundle path so malformed files don't fail silently.
+                @Code(name: "SVGLoader.swift", file: "loading-06.swift")
+            }
+        }
+    }
+}

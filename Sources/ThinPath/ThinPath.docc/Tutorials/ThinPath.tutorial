@@ -1,0 +1,26 @@
+@Tutorials(name: "ThinPath") {
+    @Intro(title: "Rendering SVGs with ThinPath") {
+        Learn to render SVG documents natively on iOS — from your first image to memory-efficient, reusable rendering — using ThinPath's Core Graphics pipeline.
+    }
+
+    @Chapter(name: "Getting Started") {
+        Add the package and render your first SVG to the screen.
+        @Image(source: "chapter-getting-started.png", alt: "A rendered SVG icon on an iOS screen.")
+        @TutorialReference(tutorial: "doc:RenderYourFirstSVG")
+    }
+
+    @Chapter(name: "Core Rendering") {
+        Load documents from any source, render to images or live views, and handle parse diagnostics.
+        @Image(source: "chapter-core-rendering.png", alt: "An SVG drawn into a view at multiple sizes.")
+        @TutorialReference(tutorial: "doc:LoadSVGDataFromAnySource")
+        @TutorialReference(tutorial: "doc:RenderToAnImageOrView")
+        @TutorialReference(tutorial: "doc:HandleParseDiagnostics")
+    }
+
+    @Chapter(name: "Performance and Memory") {
+        Reuse parsed documents and keep image memory proportional to what you draw.
+        @Image(source: "chapter-performance.png", alt: "A large photo drawn at a small size with low memory use.")
+        @TutorialReference(tutorial: "doc:ParseOnceRenderMany")
+        @TutorialReference(tutorial: "doc:ImageMemory")
+    }
+}

@@ -1,0 +1,38 @@
+@Tutorial(time: 10) {
+    @Intro(title: "Keep Image Memory Proportional to Draw Size") {
+        When an SVG embeds a raster image, ThinPath decodes it at the size you draw — not at its source resolution. You'll render a document with an embedded photo at two very different sizes and see why neither one costs a full-resolution decode.
+    }
+
+    @Section(title: "Decode at the size you draw") {
+        @ContentAndMedia {
+            The document stores only the image's reference, never decoded pixels. Each render decodes at the target's device-pixel size, so a huge source photo drawn small stays small in memory.
+        }
+
+        @Steps {
+            @Step {
+                Parse a document that embeds a large raster image, and create a renderer.
+                @Code(name: "CardRenderer.swift", file: "image-memory-01.swift")
+            }
+
+            @Step {
+                Render a thumbnail. The embedded image decodes at roughly the thumbnail's pixel size.
+                @Code(name: "CardRenderer.swift", file: "image-memory-02.swift")
+            }
+
+            @Step {
+                Render a full-screen version from the same document. It re-decodes sharply at the new, larger size.
+                @Code(name: "CardRenderer.swift", file: "image-memory-03.swift")
+            }
+
+            @Step {
+                Note the payoff: no full-resolution bitmap is retained on the document between renders.
+                @Code(name: "CardRenderer.swift", file: "image-memory-04.swift")
+            }
+
+            @Step {
+                Remember that animated sources render their first frame only.
+                @Code(name: "CardRenderer.swift", file: "image-memory-05.swift")
+            }
+        }
+    }
+}

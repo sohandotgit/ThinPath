@@ -1,0 +1,61 @@
+@Tutorial(time: 15) {
+    @Intro(title: "Render to an Image or into a View") {
+        ThinPath gives you two ways to draw a document: rasterize it to a `CGImage`, or draw it straight into a `CGContext` you already have. You'll use both, and see how the document's `viewBox` fits into the size or rectangle you provide.
+    }
+
+    @Section(title: "Rasterize to a UIImage") {
+        @ContentAndMedia {
+            `render(_:size:scale:)` allocates a bitmap sized to your request and returns a `CGImage`. Point size and scale together decide the pixel dimensions.
+        }
+
+        @Steps {
+            @Step {
+                Write a helper that renders a document to a `UIImage`.
+                @Code(name: "Rendering.swift", file: "rendering-01.swift")
+            }
+
+            @Step {
+                Use the device's screen scale so the bitmap is crisp on any display.
+                @Code(name: "Rendering.swift", file: "rendering-02.swift")
+            }
+        }
+    }
+
+    @Section(title: "Draw into a live view") {
+        @ContentAndMedia {
+            `render(_:into:rect:)` draws into any `CGContext`. From a `UIView`'s `draw(_:)`, that means the view redraws the SVG at its current size — no intermediate image.
+        }
+
+        @Steps {
+            @Step {
+                Create a `UIView` subclass that holds an optional document.
+                @Code(name: "SVGView.swift", file: "rendering-03.swift")
+            }
+
+            @Step {
+                Override `draw(_:)` and grab the current graphics context.
+                @Code(name: "SVGView.swift", file: "rendering-04.swift")
+            }
+
+            @Step {
+                Render the document into the context, filling the view's `bounds`.
+                @Code(name: "SVGView.swift", file: "rendering-05.swift")
+            }
+
+            @Step {
+                The `viewBox` is fit into the rect using the document's `preserveAspectRatio`. Passing `bounds` fills the whole view; a smaller rect places it precisely.
+                @Code(name: "SVGView.swift", file: "rendering-06.swift")
+            }
+
+            @Step {
+                Redraw automatically whenever the document changes.
+                @Code(name: "SVGView.swift", file: "rendering-07.swift")
+            }
+
+            @Step {
+                Add the view to a controller, assign a document, then build and run.
+                @Code(name: "GalleryViewController.swift", file: "rendering-08.swift")
+            }
+        }
+    }
+}

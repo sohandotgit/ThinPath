@@ -1,0 +1,53 @@
+@Tutorial(time: 10) {
+    @Intro(title: "Render Your First SVG") {
+        Add the ThinPath package, load an SVG from your app bundle, and draw it into a `UIImageView`. By the end you'll have a rendered icon on screen in about a dozen lines.
+    }
+
+    @Section(title: "Render an icon from the bundle") {
+        @ContentAndMedia {
+            You'll build a view controller that parses an SVG and shows it as a `UIImage`. Each step adds to the same file.
+        }
+
+        @Steps {
+            @Step {
+                Create a view controller with an image view, and import ThinPath alongside UIKit.
+                @Code(name: "IconViewController.swift", file: "render-first-01.swift")
+            }
+
+            @Step {
+                Find your SVG file in the app bundle.
+                @Code(name: "IconViewController.swift", file: "render-first-02.swift")
+            }
+
+            @Step {
+                Read the file's bytes as `Data`.
+                @Code(name: "IconViewController.swift", file: "render-first-03.swift")
+            }
+
+            @Step {
+                Parse the data into an ``SVGDocument``. Ignore the errors for now.
+                @Code(name: "IconViewController.swift", file: "render-first-04.swift")
+            }
+
+            @Step {
+                Create a ``ThinPath`` renderer.
+                @Code(name: "IconViewController.swift", file: "render-first-05.swift")
+            }
+
+            @Step {
+                Rasterize the document to a `CGImage` at 120×120 points, @2x.
+                @Code(name: "IconViewController.swift", file: "render-first-06.swift")
+            }
+
+            @Step {
+                Wrap the `CGImage` in a `UIImage` and assign it to the image view.
+                @Code(name: "IconViewController.swift", file: "render-first-07.swift")
+            }
+
+            @Step {
+                Position the image view, add it to the hierarchy, then build and run.
+                @Code(name: "IconViewController.swift", file: "render-first-08.swift")
+            }
+        }
+    }
+}

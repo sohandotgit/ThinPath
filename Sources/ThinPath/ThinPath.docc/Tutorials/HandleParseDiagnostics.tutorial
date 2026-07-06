@@ -1,0 +1,38 @@
+@Tutorial(time: 10) {
+    @Intro(title: "Handle Parse Diagnostics") {
+        `parse(data:)` never throws. It returns a usable document plus an array of non-fatal ``SVGParseError`` diagnostics. You'll read those diagnostics, decide whether to render, and surface warnings without blocking the user.
+    }
+
+    @Section(title: "Read and act on parse errors") {
+        @ContentAndMedia {
+            An empty `errors` array means a clean parse. A non-empty array does not mean the document is unusable — it collects recoverable problems like an unknown element or an unresolved reference.
+        }
+
+        @Steps {
+            @Step {
+                Capture both parts of the result: the document and its errors.
+                @Code(name: "Diagnostics.swift", file: "diagnostics-01.swift")
+            }
+
+            @Step {
+                Treat an empty `errors` array as a clean parse.
+                @Code(name: "Diagnostics.swift", file: "diagnostics-02.swift")
+            }
+
+            @Step {
+                Render the document even when warnings are present — they're non-fatal.
+                @Code(name: "Diagnostics.swift", file: "diagnostics-03.swift")
+            }
+
+            @Step {
+                Inspect each error's `message` to see what the parser recovered from.
+                @Code(name: "Diagnostics.swift", file: "diagnostics-04.swift")
+            }
+
+            @Step {
+                Log the warnings and still return the rendered image.
+                @Code(name: "Diagnostics.swift", file: "diagnostics-05.swift")
+            }
+        }
+    }
+}

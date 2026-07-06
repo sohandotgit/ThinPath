@@ -1,0 +1,43 @@
+@Tutorial(time: 10) {
+    @Intro(title: "Parse Once, Render Many") {
+        Parsing is the costly step; rendering from an ``SVGDocument`` is cheap. You'll build a small store that parses a document once and hands out images at any size — a thumbnail, a detail view, or anything in between — without re-parsing.
+    }
+
+    @Section(title: "Reuse one document across renders") {
+        @ContentAndMedia {
+            The flat arena IR makes a parsed document cheap to keep around and cheap to re-render. Parse when the bytes arrive, then hold the document for the lifetime of the view.
+        }
+
+        @Steps {
+            @Step {
+                Create an `IconStore` that parses its data once, in `init`.
+                @Code(name: "IconStore.swift", file: "reuse-01.swift")
+            }
+
+            @Step {
+                Keep a single renderer alongside the document.
+                @Code(name: "IconStore.swift", file: "reuse-02.swift")
+            }
+
+            @Step {
+                Render a small thumbnail from the stored document.
+                @Code(name: "IconStore.swift", file: "reuse-03.swift")
+            }
+
+            @Step {
+                Render a large detail image — from the same document, no re-parse.
+                @Code(name: "IconStore.swift", file: "reuse-04.swift")
+            }
+
+            @Step {
+                Generalize to any side length so you can re-render after a layout change.
+                @Code(name: "IconStore.swift", file: "reuse-05.swift")
+            }
+
+            @Step {
+                Express the fixed sizes in terms of the general method.
+                @Code(name: "IconStore.swift", file: "reuse-06.swift")
+            }
+        }
+    }
+}
