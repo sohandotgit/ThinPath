@@ -36,7 +36,7 @@ ThinPath parses SVG into a flat, index-based intermediate representation and dra
 Add ThinPath to the `dependencies` in your `Package.swift`:
 
 ```swift
-.package(url: "https://github.com/sohandotgit/ThinPath.git", from: "1.0.0") // [TODO: confirm tagged release]
+.package(url: "https://github.com/sohandotgit/ThinPath.git", from: "1.0.0")
 ```
 
 Then add `"ThinPath"` to your target's dependencies.
