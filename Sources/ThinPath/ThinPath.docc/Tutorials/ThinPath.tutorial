@@ -1,6 +1,6 @@
 @Tutorials(name: "ThinPath") {
     @Intro(title: "Rendering SVGs with ThinPath") {
-        Learn to render SVG documents natively on iOS — from your first image to memory-efficient, reusable rendering — using ThinPath's Core Graphics pipeline.
+        Learn to render SVG documents natively on iOS, macOS, and watchOS — from your first image to memory-efficient, reusable rendering — using ThinPath's Core Graphics pipeline.
     }
 
     @Chapter(name: "Getting Started") {

@@ -29,7 +29,7 @@ swift build
 swift test
 ```
 
-Requires Swift 5.9+ and iOS 13+ as the deployment target (see `Package.swift`).
+Requires Swift 5.9+ and a deployment target of iOS 13+, macOS 11+, or watchOS 7+ (see `Package.swift`).
 
 ## Project Layout
 

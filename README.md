@@ -2,10 +2,10 @@
 
 [![Swift Package Manager compatible](https://img.shields.io/badge/SPM-compatible-brightgreen.svg)](https://swift.org/package-manager/)
 [![Swift](https://img.shields.io/badge/Swift-5.9%2B-orange.svg)](https://swift.org)
-[![Platform](https://img.shields.io/badge/platform-iOS%2013%2B-lightgrey.svg)](https://developer.apple.com/ios/)
+[![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20macOS%20%7C%20watchOS-lightgrey.svg)](https://developer.apple.com/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A memory-first native SVG renderer for iOS, built directly on Core Graphics.
+A memory-first native SVG renderer for iOS, macOS, and watchOS, built directly on Core Graphics.
 
 ThinPath parses SVG into a flat, index-based intermediate representation and draws it straight to a `CGContext` — no node graph, no intermediate bitmaps, no third-party dependencies. It's built for apps that render many SVGs and can't afford the allocation churn or memory footprint of a pointer-linked DOM.
 
@@ -22,7 +22,7 @@ ThinPath parses SVG into a flat, index-based intermediate representation and dra
 
 ## Requirements
 
-- iOS 13+
+- iOS 13+, macOS 11+, or watchOS 7+
 - Swift 5.9+
 - Xcode 15.0+ <!-- [TODO: confirm] -->
 
@@ -54,7 +54,7 @@ let (document, _) = parse(data: data)
 
 let renderer = ThinPath()
 if let image = renderer.render(document, size: CGSize(width: 200, height: 200), scale: 2) {
-    imageView.image = UIImage(cgImage: image)
+    imageView.image = UIImage(cgImage: image) // NSImage(cgImage:size:) on macOS
 }
 ```
 

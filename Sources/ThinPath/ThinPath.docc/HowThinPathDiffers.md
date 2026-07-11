@@ -8,7 +8,7 @@ This article describes ThinPath's own choices and why they were made. It intenti
 
 ### Native Core Graphics, zero third-party dependencies
 
-ThinPath is built entirely on Core Graphics, Core Text, and ImageIO — frameworks that ship with iOS. The `ThinPath` library target declares no package dependencies. The tradeoff: ThinPath draws only what these frameworks can draw, and features requiring their own rendering engine are out of scope until built on the same primitives (see <doc:SupportedFeaturesAndLimits>).
+ThinPath is built entirely on Core Graphics, Core Text, and ImageIO — frameworks that ship on iOS, macOS, and watchOS. The `ThinPath` library target declares no package dependencies. The tradeoff: ThinPath draws only what these frameworks can draw, and features requiring their own rendering engine are out of scope until built on the same primitives (see <doc:SupportedFeaturesAndLimits>).
 
 A library that ships its own rendering engine, rather than delegating to the platform's 2D stack, can offer a more complete or more portable feature set — at the cost of a larger binary and a second pipeline to keep correct alongside the platform's own.
 

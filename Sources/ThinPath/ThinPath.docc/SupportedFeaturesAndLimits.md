@@ -37,7 +37,7 @@ ThinPath is render-only by design. Tap gestures, hit-testing, and runtime node m
 
 ### Font fallback substitutes and does not promise metric compatibility
 
-`font-family` is a comma-separated, prioritized list. ThinPath walks it, verifies each candidate actually resolved to the requested family (Core Text can silently substitute a default for an unknown name), and falls back to the iOS system font if nothing resolves. A document authored against a desktop font — Inkscape's default export of `'Liberation Sans'` is a common case — renders with a substituted font on iOS if that family is not installed. The substituted font is not guaranteed to be metric-identical, so glyph widths and text layout may differ from the original design.
+`font-family` is a comma-separated, prioritized list. ThinPath walks it, verifies each candidate actually resolved to the requested family (Core Text can silently substitute a default for an unknown name), and falls back to the platform's system font if nothing resolves. A document authored against a desktop font — Inkscape's default export of `'Liberation Sans'` is a common case — renders with a substituted font if that family is not installed on the current platform. The substituted font is not guaranteed to be metric-identical, so glyph widths and text layout may differ from the original design.
 
 ### External image references resolve local files only, not network URLs
 

@@ -4,3 +4,9 @@ builder:
     - platform: ios
       documentation_targets:
         - ThinPath
+    - platform: macos-xcodebuild
+      documentation_targets:
+        - ThinPath
+    - platform: watchos
+      documentation_targets:
+        - ThinPath

@@ -1,6 +1,6 @@
 # ``ThinPath``
 
-A memory-first, native iOS SVG renderer built directly on Core Graphics, Core Text, and ImageIO, with no third-party dependencies.
+A memory-first, native SVG renderer for iOS, macOS, and watchOS, built directly on Core Graphics, Core Text, and ImageIO, with no third-party dependencies.
 
 ## Overview
 
