@@ -82,15 +82,26 @@ enum HostingSnapshot {
         )
         hostingView.frame = CGRect(origin: .zero, size: size)
 
-        // A real (invisible) window so layout/environment resolve as they
-        // would for an on-screen view.
+        // A real window, ordered in but positioned far off any actual
+        // display, so layout/environment resolve as they would for an
+        // on-screen view. `setIsVisible(false)` looked equivalent locally but
+        // left SwiftUI's content never actually committed to the layer tree
+        // on CI's headless runners (no window server session driving a
+        // display cycle for a window that's never been ordered in), so the
+        // capture below came back blank there. Ordering the window in (while
+        // keeping it off-screen) gives SwiftUI a real display cycle to latch
+        // onto in that environment too.
         let window = NSWindow(
-            contentRect: hostingView.frame, styleMask: [.borderless],
+            contentRect: CGRect(origin: CGPoint(x: -10_000, y: -10_000), size: size),
+            styleMask: [.borderless],
             backing: .buffered, defer: false
         )
         window.contentView = hostingView
-        window.setIsVisible(false)
+        window.orderFrontRegardless()
         hostingView.layoutSubtreeIfNeeded()
+        // Give SwiftUI's render pipeline a runloop turn to flush the initial
+        // content into the hosting view's layer before we snapshot it.
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
 
         // A view that pins its own rasterization scale (e.g. `ThinPathView`
         // with an explicit `scale:`) must be captured at THAT scale, not the

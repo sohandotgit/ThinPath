@@ -20,6 +20,30 @@ public enum ThinPathRenderingMode: Equatable {
     case synchronous
 }
 
+/// iOS-13-compatible replacement for `.onChange(of:perform:)`, which itself
+/// only became available in iOS 14 — below that floor, `ThinPathView` (pinned
+/// to iOS 13 per Design/swiftui-wrapper-api.md §2) can't call it directly.
+/// Detects a change during `body` evaluation and defers the actual state
+/// write/callback to the next run loop turn via `DispatchQueue.main.async`,
+/// which avoids mutating `@State` mid-update.
+@available(iOS 13.0, macOS 11.0, watchOS 7.0, *)
+private struct OnChangeCompat<Value: Equatable>: ViewModifier {
+    let value: Value
+    let action: (Value) -> Void
+    @State private var seenValue: Value?
+
+    func body(content: Content) -> some View {
+        if seenValue != value {
+            DispatchQueue.main.async {
+                guard seenValue != value else { return }
+                seenValue = value
+                action(value)
+            }
+        }
+        return content
+    }
+}
+
 /// Shared rasterization helpers used by both `ThinPathView` and the `Image`
 /// convenience below. Not part of the public surface — see
 /// Design/swiftui-wrapper-api.md §5.1 ("the queue and its identity are not
@@ -121,7 +145,7 @@ public struct ThinPathView<Placeholder: View>: View {
                 }
             }
             .onAppear { rasterAsynchronouslyIfNeeded(key: key) }
-            .onChange(of: key) { newKey in rasterAsynchronouslyIfNeeded(key: newKey) }
+            .modifier(OnChangeCompat(value: key) { newKey in rasterAsynchronouslyIfNeeded(key: newKey) })
         }
     }
 
