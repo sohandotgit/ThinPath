@@ -98,6 +98,11 @@ enum HostingSnapshot {
         )
         window.contentView = hostingView
         window.orderFrontRegardless()
+        // Each call gets its own window at the same off-screen origin; close
+        // it on the way out so a still-open window from a prior capture in
+        // the same test can never be composited alongside (or instead of)
+        // the one under test.
+        defer { window.close() }
         hostingView.layoutSubtreeIfNeeded()
         // Give SwiftUI's render pipeline a runloop turn to flush the initial
         // content into the hosting view's layer before we snapshot it.
@@ -227,7 +232,7 @@ final class SwiftUIWrapperConstructionTests: XCTestCase {
                     HStack {
                         ThinPathView(document, preserveAspectRatio: .init(align: .xMinYMin, meetOrSlice: .slice))
                         ThinPathView(document) { Color.gray }
-                            .accessibilityLabel("decorative icon")
+                            .accessibility(label: SwiftUI.Text("decorative icon"))
                     }
                 }
             }
