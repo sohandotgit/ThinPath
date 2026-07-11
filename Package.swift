@@ -4,7 +4,9 @@ import PackageDescription
 let package = Package(
     name: "ThinPath",
     platforms: [
-        .iOS(.v13)
+        .iOS(.v13),
+        .macOS(.v11),
+        .watchOS(.v7)
     ],
     products: [
         .library(

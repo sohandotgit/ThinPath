@@ -1,0 +1,55 @@
+# Runs the existing ThinPathTests suite on every platform declared in
+# Package.swift (iOS, macOS, watchOS). macOS runs natively via `swift test`;
+# iOS/watchOS have no CLI-only SPM test runner, so they go through
+# `xcodebuild test` against a simulator destination for the auto-generated
+# "ThinPath" package scheme.
+#
+# Runner/Xcode version pinned to macos-14 to match docs.yml; bump both
+# together if this starts failing after a long period of inactivity.
+
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Swift/Xcode version
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: swift test (macOS)
+        run: swift test
+
+  ios:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: xcodebuild test (iOS Simulator)
+        run: |
+          xcodebuild test \
+            -scheme ThinPath \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest'
+
+  watchos:
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: xcodebuild test (watchOS Simulator)
+        run: |
+          xcodebuild test \
+            -scheme ThinPath \
+            -destination 'platform=watchOS Simulator,name=Apple Watch Series 9 (45mm),OS=latest'
