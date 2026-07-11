@@ -15,8 +15,8 @@ ThinPath parses SVG into a flat, index-based intermediate representation and dra
 - Flat arena IR: parsed documents are contiguous arrays, not a heap of node objects.
 - Shapes, groups, `<use>`/`<symbol>` instancing, nested viewports.
 - Solid fills, linear/radial gradients, and `<pattern>` fills.
-- Clip paths, masks, opacity, and blending modes.
-- Basic `<text>` with system fonts, and embedded/referenced `<image>` with on-demand decoding.
+- Clip paths, masks, and opacity.
+- Single-line `<text>` with system fonts (one positioned run per element — no `<tspan>`, `dx`/`dy`, multiline, or text-on-path), and embedded/referenced `<image>` with on-demand decoding.
 - Full SVG transform support and `preserveAspectRatio` fitting.
 - Zero third-party dependencies.
 
@@ -76,7 +76,9 @@ Full documentation is generated with DocC and hosted at [sohandotgit.github.io/T
 
 The parsed IR is a flat arena of contiguous arrays addressed by integer indices — no class instances and no retain cycles, so dropping a document frees a handful of arrays. Path commands, points, and gradient stops live in shared side arenas, keeping node structs small and fixed-size. Image bitmaps are never retained by the document; they decode on demand at render scale, so long-lived documents stay lean. See [Design/MemoryModel.md](Design/MemoryModel.md) for the full rationale.
 
-Not yet supported: SMIL/CSS animation, `<filter>` effects, scripting, and `@font-face` embedded fonts.
+Not yet supported: SMIL/CSS animation, `<filter>` effects, scripting, general `mix-blend-mode` compositing, and `@font-face` embedded fonts.
+
+**Non-goal: interactivity.** ThinPath is render-only by design. Tap gestures, hit-testing, and runtime node mutation are out of scope — the flat, value-type IR has no mutable node identity to attach behavior to or to mutate in place. If you need interactive SVG (gestures, live DOM-style mutation), reach for a retained-tree renderer such as [SVGView](https://github.com/exyte/SVGView) instead.
 
 ## Contributing
 

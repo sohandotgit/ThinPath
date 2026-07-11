@@ -18,7 +18,7 @@ This is a factual inventory, not a roadmap. "Deferred" means not implemented in 
 
 **Clipping and masking** — `<clipPath>` and `<mask>`, including `clipPathUnits`, `maskUnits`, and `maskContentUnits` bounding-box mapping.
 
-**Text** — basic `<text>`: a single positioned run per element (`x`, `y`, text content), honoring `font-family`, `font-size`, `font-weight`, `font-style`, and `text-anchor`, filled with a solid color. There is no multi-`<tspan>` layout, no per-glyph `dx`/`dy` shifting, no bidi handling, and no text-on-a-path — the IR carries one run per text node, so richer layout is not representable without extending the model first.
+**Text** — single-line `<text>` only: exactly one positioned run per element (`x`, `y`, text content), honoring `font-family`, `font-size`, `font-weight`, `font-style`, and `text-anchor`, filled with a solid color. There is no `<tspan>` support, no per-glyph `dx`/`dy` shifting, no multiline layout, no bidi handling, and no text-on-a-path — the IR carries one run per text node, so richer layout is not representable without extending the model first.
 
 **Images** — embedded `<image>` (including `data:` URIs) and external file-based references, decoded lazily at the target's device-pixel size (see <doc:ScaleAwareImageDecoding>). Multi-frame sources render frame 0 only.
 
@@ -29,6 +29,11 @@ This is a factual inventory, not a roadmap. "Deferred" means not implemented in 
 - **Advanced filters** — `<filter>`, `<feGaussianBlur>`, and the other filter-effects primitives are not implemented.
 - **Scripting** — `onload`, `onclick`, and other event-handler attributes are out of scope.
 - **Embedded fonts** — `<style>` blocks and `@font-face` parsing are not implemented; font resolution only consults fonts already available on the system.
+- **General blend modes** — `mix-blend-mode` and isolated-blend compositing are not implemented. The only blend applied internally is `destinationIn` for masking; there is no support for `multiply`, `screen`, `overlay`, or the other separable/non-separable blend modes.
+
+### Not a goal: interactivity
+
+ThinPath is render-only by design. Tap gestures, hit-testing, and runtime node mutation are out of scope — and not merely deferred. The parsed document is a flat arena of value types (see <doc:MemoryModel>) with no mutable, addressable node identity to attach behavior to or to mutate in place; adding interactivity would mean a different data model, not an incremental feature. For interactive SVG — gestures, live DOM-style mutation, per-node inspection — use a retained-tree renderer such as [SVGView](https://github.com/exyte/SVGView) instead.
 
 ### Font fallback substitutes and does not promise metric compatibility
 
