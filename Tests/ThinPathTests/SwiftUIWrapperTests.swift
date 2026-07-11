@@ -56,6 +56,14 @@ import AppKit
 /// at an explicit pixel size (`size` in points times `scale`), independent of
 /// the actual screen's backing scale factor.
 enum HostingSnapshot {
+    /// Monotonic counter so each captured window gets a distinct off-screen
+    /// origin — main-thread only, matching where windows are actually made.
+    private static var windowOffsetCounter: CGFloat = 0
+    private static func nextWindowOffset() -> CGFloat {
+        windowOffsetCounter += CGFloat.random(in: 1_000...2_000)
+        return windowOffsetCounter
+    }
+
     /// `NSWindow`/`NSHostingView` must be created on the main thread; async
     /// XCTest methods otherwise run on a background executor, so this hops
     /// over to the main thread when needed before doing any AppKit work.
@@ -91,18 +99,20 @@ enum HostingSnapshot {
         // capture below came back blank there. Ordering the window in (while
         // keeping it off-screen) gives SwiftUI a real display cycle to latch
         // onto in that environment too.
+        // Each call gets its own window; give it a unique off-screen origin
+        // (rather than reusing one fixed point, or explicitly closing the
+        // window afterwards — both were tried and either let a still-open
+        // prior window bleed into this capture, or crashed the CI runner's
+        // older AppKit when torn down mid-render) so concurrent/back-to-back
+        // captures within one test never spatially collide.
+        let origin = CGPoint(x: -10_000, y: -10_000 - nextWindowOffset())
         let window = NSWindow(
-            contentRect: CGRect(origin: CGPoint(x: -10_000, y: -10_000), size: size),
+            contentRect: CGRect(origin: origin, size: size),
             styleMask: [.borderless],
             backing: .buffered, defer: false
         )
         window.contentView = hostingView
         window.orderFrontRegardless()
-        // Each call gets its own window at the same off-screen origin; close
-        // it on the way out so a still-open window from a prior capture in
-        // the same test can never be composited alongside (or instead of)
-        // the one under test.
-        defer { window.close() }
         hostingView.layoutSubtreeIfNeeded()
         // Give SwiftUI's render pipeline a runloop turn to flush the initial
         // content into the hosting view's layer before we snapshot it.
