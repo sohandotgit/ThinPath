@@ -95,6 +95,80 @@ if let cgImage = renderer.render(document, size: CGSize(width: 200, height: 200)
 
 ---
 
+## SwiftUI (when `canImport(SwiftUI)`)
+
+A render-only convenience layer over the rasterizer above. Available on iOS 13+, macOS 11+, watchOS 7+. It exposes no mutable nodes, gestures, or hit-testing, and never parses inside a SwiftUI `body` — parse once with `parse(data:)` and pass the `SVGDocument` in.
+
+### ThinPathView
+
+```swift
+@available(iOS 13.0, macOS 11.0, watchOS 7.0, *)
+public struct ThinPathView<Placeholder: View>: View {
+    public init(_ document: SVGDocument,
+                preserveAspectRatio: PreserveAspectRatio? = nil,
+                scale: CGFloat? = nil,
+                rendering: ThinPathRenderingMode = .asynchronous,
+                @ViewBuilder placeholder: () -> Placeholder)
+}
+
+// Common case: placeholder defaults to Color.clear, call site is ThinPathView(doc).
+extension ThinPathView where Placeholder == Color {
+    public init(_ document: SVGDocument,
+                preserveAspectRatio: PreserveAspectRatio? = nil,
+                scale: CGFloat? = nil,
+                rendering: ThinPathRenderingMode = .asynchronous)
+}
+```
+
+Rasterizes `document` to a `CGImage` sized to the view's laid-out frame and presents it as a decorative `Image`.
+
+- `preserveAspectRatio: nil` honors the document's `rootPreserveAspectRatio`; a non-nil value overrides it for this view only (render config, not an IR mutation).
+- `scale: nil` reads `@Environment(\.displayScale)`; a non-nil value pins it (deterministic snapshots).
+- The view caches one `CGImage`, keyed on `(frame size, scale, preserveAspectRatio)`, and re-rasterizes only when that key changes. It never keys on document contents — the document is assumed immutable for a view's identity.
+
+```swift
+public enum ThinPathRenderingMode: Equatable {
+    case asynchronous // default: rasterize off the main thread, show placeholder until first image
+    case synchronous  // rasterize inline in the layout pass; placeholder never shown
+}
+```
+
+### Image initializers
+
+```swift
+@available(iOS 13.0, macOS 11.0, watchOS 7.0, *)
+extension Image {
+    // Synchronous, on the calling thread. nil for a degenerate size/scale.
+    public init?(_ document: SVGDocument, size: CGSize, scale: CGFloat = 1)
+
+    // Off-thread producer for large documents.
+    public static func thinPath(_ document: SVGDocument,
+                                size: CGSize,
+                                scale: CGFloat = 1) async -> Image?
+}
+```
+
+Both present a fixed-size decorative `Image`, fit using the document's own `preserveAspectRatio`, and mirror `render(_:size:scale:)` by returning `nil` on a degenerate size/scale.
+
+**Example:**
+
+```swift
+let (document, _) = parse(data: svgData)
+
+struct LogoView: View {
+    let document: SVGDocument
+    var body: some View {
+        ThinPathView(document)
+            .frame(width: 200, height: 200)
+    }
+}
+
+// Or a fixed-size icon:
+Image(document, size: CGSize(width: 24, height: 24), scale: 2)
+```
+
+---
+
 ## Types
 
 ### SVGDocument

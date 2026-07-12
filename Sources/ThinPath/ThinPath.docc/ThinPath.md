@@ -18,6 +18,7 @@ ThinPath parses an SVG document into a flat, arena-based intermediate representa
 - <doc:LoadingSVGData>
 - <doc:RenderingToAnImage>
 - <doc:RenderingIntoAView>
+- <doc:SwiftUIViews>
 
 ### Performance
 
@@ -35,3 +36,8 @@ ThinPath parses an SVG document into a flat, arena-based intermediate representa
 - ``ThinPath``
 - ``SVGDocument``
 - ``SVGParseError``
+
+### SwiftUI
+
+- ``ThinPathView``
+- ``ThinPathRenderingMode``

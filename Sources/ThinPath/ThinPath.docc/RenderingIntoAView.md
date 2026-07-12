@@ -17,4 +17,4 @@ final class SVGView: UIView {
 }
 ```
 
-The renderer draws into `rect` in the context's own coordinate space, so you control placement by choosing that rectangle. To produce a standalone image instead, see <doc:RenderingToAnImage>.
+The renderer draws into `rect` in the context's own coordinate space, so you control placement by choosing that rectangle. To produce a standalone image instead, see <doc:RenderingToAnImage>. For SwiftUI, use the render-only wrapper described in <doc:SwiftUIViews>.

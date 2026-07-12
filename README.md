@@ -12,6 +12,7 @@ ThinPath parses SVG into a flat, index-based intermediate representation and dra
 ## Features
 
 - Renders directly into any `CGContext`, or rasterizes to a `CGImage`.
+- Render-only SwiftUI wrapper: a `ThinPathView` and fixed-size `Image` initializers, with off-main-thread rasterization by default.
 - Flat arena IR: parsed documents are contiguous arrays, not a heap of node objects.
 - Shapes, groups, `<use>`/`<symbol>` instancing, nested viewports.
 - Solid fills, linear/radial gradients, and `<pattern>` fills.
@@ -63,6 +64,38 @@ To draw into an existing context instead — e.g. from `draw(_:)`:
 ```swift
 renderer.render(document, into: context, rect: bounds)
 ```
+
+## SwiftUI
+
+When `SwiftUI` is available, ThinPath ships a small **render-only** wrapper. Parse once (allocation stays out of `body`), then hand the parsed `SVGDocument` to a `ThinPathView`:
+
+```swift
+import SwiftUI
+import ThinPath
+
+struct LogoView: View {
+    let document: SVGDocument // from parse(data:), held outside body
+
+    var body: some View {
+        ThinPathView(document)
+            .frame(width: 200, height: 200)
+    }
+}
+```
+
+`ThinPathView` rasterizes off the main thread by default (`rendering: .asynchronous`), showing a placeholder until the first image is ready and never flashing to it on resize. Pass `rendering: .synchronous` for small icons and deterministic snapshot tests. Fit is controlled entirely by `preserveAspectRatio:` — the view never mutates the document's IR.
+
+For a plain, caller-sized `Image` (toolbar icon, list row), use the `Image` initializers:
+
+```swift
+// Synchronous, on the calling thread; nil for a degenerate size/scale.
+Image(document, size: CGSize(width: 24, height: 24), scale: 2)
+
+// Off-thread producer for large documents.
+let image = await Image.thinPath(document, size: size, scale: 2)
+```
+
+The wrapper stays true to ThinPath's mission: no mutable nodes, no gestures, no hit-testing. Parse errors are handled at the `parse(data:)` boundary — the views never see them. See the [SwiftUI views guide](https://sohandotgit.github.io/ThinPath/docs/documentation/thinpath/swiftuiviews) for the full contract.
 
 ## Documentation
 

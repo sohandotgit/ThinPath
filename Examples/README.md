@@ -27,6 +27,16 @@ Parse once, render at multiple scales:
 
 **Best for:** Icon sets, theme assets, performance-critical rendering
 
+## SwiftUIRender.swift
+
+Presenting a parsed document in SwiftUI with the render-only wrapper:
+- `loadDocument(url:)` — Parse once, outside `body`
+- `LogoView` — `ThinPathView` sized to its frame
+- `BannerView` — Custom placeholder and a `preserveAspectRatio` override
+- `IconRow` — Fixed-size `Image(_:size:scale:)` for a list row
+
+**Best for:** SwiftUI apps, icons and logos in a view hierarchy
+
 ## ErrorHandling.swift
 
 Graceful error handling and fallbacks:
