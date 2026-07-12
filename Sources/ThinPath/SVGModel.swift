@@ -115,6 +115,11 @@ public struct SVGDocument {
     public var rootViewBox: ViewBox?
     public var rootPreserveAspectRatio: PreserveAspectRatio = .default
 
+    /// Flat pool of class-token refs, shared by all elements (Design/css-support.md
+    /// §3.1). Each element's `class` attribute stores a window into this arena
+    /// (`SVGNode.classes`) rather than owning an array.
+    public var classNames: [StringRef] = []
+
     public init() {}
 
     // MARK: Convenience accessors (bounds-checked read helpers)
@@ -202,6 +207,11 @@ public struct SVGNode {
     /// resolution assumptions and can be re-resolved (e.g. for `use` shadow
     /// trees — see StyleResolver.swift). See `RawStyle`.
     public var style: RawStyle = RawStyle()
+
+    /// Window into `SVGDocument.classNames` for this element's `class`
+    /// attribute tokens (Design/css-support.md §3.2). `.empty` (the common
+    /// no-class case) costs nothing beyond the field.
+    public var classes: ArenaRange = .empty
 
     public init(kind: NodeKind) {
         self.kind = kind

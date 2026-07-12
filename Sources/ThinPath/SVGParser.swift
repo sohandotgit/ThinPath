@@ -38,6 +38,7 @@ public enum SVGParser {
             let message = xmlParser.parserError?.localizedDescription ?? "XML parsing failed"
             delegate.errors.append(SVGParseError(message: message))
         }
+        delegate.foldStyleSheet()
         return (delegate.doc, delegate.errors)
     }
 }
@@ -58,10 +59,31 @@ private final class SVGXMLDelegate: NSObject, XMLParserDelegate {
         /// `.none` if this element did not create an `SVGNode`.
         var ownNode: NodeIndex
         var textBuffer: String = ""
+        /// True for a `<style>` element's frame: while on the stack, character
+        /// data (including CDATA) accumulates in `textBuffer` for the CSS
+        /// tokenizer instead of being discarded. See css-support.md §4.1.
+        var isStyleElement: Bool = false
+        /// Whether a `<style>` element's declared `type` (if any) is `text/css`
+        /// (or absent). A non-CSS `type` still consumes the element (no stray
+        /// node/text) but its buffered text is discarded, not tokenized.
+        var styleTypeOK: Bool = true
     }
 
     private var stack: [Frame] = []
     private var lastChildOf: [NodeIndex: NodeIndex] = [:]
+
+    /// Deferred inline `style=""` declarations, keyed by node index, split into
+    /// normal/important at parse time (css-support.md §4.3). Applied during the
+    /// post-parse fold at cascade layers 3 and 5, then discarded.
+    var inlineDecls: [Int32: (normal: [String: String], important: [String: String])] = [:]
+
+    // MARK: CSS transient scratch (freed with the delegate; see css-support.md §6)
+
+    private var cssComponents: [CSSSimpleSelector] = []
+    private var cssSelClasses: [StringRef] = []
+    private var cssDeclBlocks: [[String: String]] = []
+    private var cssRules: [CSSRule] = []
+    private var cssSourceOrder: Int32 = 0
 
     // MARK: XMLParserDelegate
 
@@ -77,6 +99,19 @@ private final class SVGXMLDelegate: NSObject, XMLParserDelegate {
             return
         }
 
+        if elementName == "style" {
+            let typeOK: Bool
+            if let type = attributeDict["type"] {
+                typeOK = type.trimmingCharacters(in: .whitespacesAndNewlines)
+                    .caseInsensitiveCompare("text/css") == .orderedSame
+            } else {
+                typeOK = true
+            }
+            stack.append(Frame(attachTo: parentAttach, ownNode: .none,
+                                isStyleElement: true, styleTypeOK: typeOK))
+            return
+        }
+
         guard let kind = makeNodeKind(elementName, attributeDict, doc: &doc) else {
             errors.append(SVGParseError(message: "unsupported element <\(elementName)>"))
             stack.append(Frame(attachTo: parentAttach, ownNode: .none))
@@ -89,6 +124,15 @@ private final class SVGXMLDelegate: NSObject, XMLParserDelegate {
             node.id = doc.strings.intern(idStr)
         }
 
+        if let cls = attributeDict["class"] {
+            let start = doc.classNames.count
+            for token in cls.split(whereSeparator: { $0 == " " || $0 == "\t" || $0 == "\n" || $0 == "\r" })
+            where !token.isEmpty {
+                doc.classNames.append(doc.strings.intern(String(token)))
+            }
+            node.classes = ArenaRange(start: Int32(start), count: Int32(doc.classNames.count - start))
+        }
+
         if let t = attributeDict["transform"] {
             if let matrix = TransformParser.parse(t) {
                 doc.transforms.append(matrix)
@@ -99,12 +143,16 @@ private final class SVGXMLDelegate: NSObject, XMLParserDelegate {
         }
 
         applyStyleProperties(attributeDict, into: &node.style, doc: &doc)
-        if let styleStr = attributeDict["style"] {
-            applyStyleProperties(parseStyleDeclarations(styleStr), into: &node.style, doc: &doc)
-        }
 
         let newIndex = NodeIndex(doc.nodes.count)
         doc.nodes.append(node)
+
+        if let styleStr = attributeDict["style"] {
+            let (normal, important) = splitImportant(parseStyleDeclarations(styleStr))
+            if !normal.isEmpty || !important.isEmpty {
+                inlineDecls[newIndex] = (normal, important)
+            }
+        }
 
         if !node.id.isNone {
             doc.idMap[node.id] = newIndex
@@ -129,9 +177,21 @@ private final class SVGXMLDelegate: NSObject, XMLParserDelegate {
         stack[stack.count - 1].textBuffer += string
     }
 
+    func parser(_ parser: XMLParser, foundCDATA CDATABlock: Data) {
+        guard !stack.isEmpty else { return }
+        guard let s = String(data: CDATABlock, encoding: .utf8) else { return }
+        stack[stack.count - 1].textBuffer += s
+    }
+
     func parser(_ parser: XMLParser, didEndElement elementName: String,
                 namespaceURI: String?, qualifiedName qName: String?) {
         guard let frame = stack.popLast() else { return }
+        if frame.isStyleElement {
+            if frame.styleTypeOK {
+                tokenizeStyleSheet(frame.textBuffer)
+            }
+            return
+        }
         guard !frame.ownNode.isNone else { return }
         let idx = Int(frame.ownNode)
         guard case .text(var text) = doc.nodes[idx].kind else { return }
@@ -153,6 +213,7 @@ private final class SVGXMLDelegate: NSObject, XMLParserDelegate {
 
     private func attach(child: NodeIndex, to parent: NodeIndex) {
         guard !parent.isNone else { return }
+        doc.nodes[Int(child)].parent = parent
         if let last = lastChildOf[parent], !last.isNone {
             doc.nodes[Int(last)].nextSibling = child
         } else {
@@ -171,6 +232,347 @@ private final class SVGXMLDelegate: NSObject, XMLParserDelegate {
         gradient.stops.count += 1
         doc.nodes[Int(parentAttach)].kind = .gradient(gradient)
     }
+
+    // MARK: CSS — tokenizing `<style>` text into transient rules (css-support.md §4.4)
+
+    private func tokenizeStyleSheet(_ rawText: String) {
+        let text = stripCSSComments(rawText)
+        var idx = text.startIndex
+        let end = text.endIndex
+
+        while idx < end {
+            while idx < end, text[idx].isWhitespace { idx = text.index(after: idx) }
+            guard idx < end else { break }
+
+            if text[idx] == "@" {
+                skipAtRule(text, &idx)
+                continue
+            }
+
+            let preludeStart = idx
+            var cursor = idx
+            var foundBrace = false
+            while cursor < end {
+                let c = text[cursor]
+                if c == "{" { foundBrace = true; break }
+                if c == ";" { break }
+                cursor = text.index(after: cursor)
+            }
+            guard foundBrace else { break }
+
+            let prelude = String(text[preludeStart..<cursor])
+            var depth = 1
+            var bodyCursor = text.index(after: cursor)
+            let bodyStart = bodyCursor
+            while bodyCursor < end, depth > 0 {
+                let c = text[bodyCursor]
+                if c == "{" { depth += 1 }
+                else if c == "}" { depth -= 1 }
+                if depth > 0 { bodyCursor = text.index(after: bodyCursor) }
+            }
+            let block = String(text[bodyStart..<bodyCursor])
+            idx = bodyCursor < end ? text.index(after: bodyCursor) : end
+            addCSSRule(prelude: prelude, block: block)
+        }
+    }
+
+    private func skipAtRule(_ text: String, _ idx: inout String.Index) {
+        let end = text.endIndex
+        while idx < end {
+            let c = text[idx]
+            if c == ";" { idx = text.index(after: idx); return }
+            if c == "{" {
+                var depth = 1
+                idx = text.index(after: idx)
+                while idx < end, depth > 0 {
+                    let cc = text[idx]
+                    if cc == "{" { depth += 1 }
+                    else if cc == "}" { depth -= 1 }
+                    idx = text.index(after: idx)
+                }
+                return
+            }
+            idx = text.index(after: idx)
+        }
+    }
+
+    private func addCSSRule(prelude: String, block: String) {
+        let selectorStrings = prelude.split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        guard !selectorStrings.isEmpty else { return }
+
+        let (normal, important) = splitImportant(parseStyleDeclarations(block))
+        let normalIndex = Int32(cssDeclBlocks.count)
+        cssDeclBlocks.append(normal)
+        let importantIndex = Int32(cssDeclBlocks.count)
+        cssDeclBlocks.append(important)
+
+        let order = cssSourceOrder
+        cssSourceOrder += 1
+
+        for selStr in selectorStrings {
+            guard let selector = parseCSSSelector(selStr) else { continue }
+            let specificity = computeSpecificity(selector)
+            cssRules.append(CSSRule(selector: selector, declNormalIndex: normalIndex,
+                                     declImportantIndex: importantIndex,
+                                     specificity: specificity, sourceOrder: order))
+        }
+    }
+
+    /// Parses one compound-simple-selector chain (the descendant combinator,
+    /// space-separated). Returns `nil` for anything containing an unsupported
+    /// combinator/selector kind (child, sibling, attribute, pseudo) — the rule
+    /// is then dropped, not errored (css-support.md §4.4).
+    private func parseCSSSelector(_ raw: String) -> CSSSelector? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        if trimmed.contains(">") || trimmed.contains("+") || trimmed.contains("~") ||
+            trimmed.contains("[") || trimmed.contains(":") {
+            return nil
+        }
+        let parts = trimmed.split(whereSeparator: { $0 == " " || $0 == "\t" || $0 == "\n" || $0 == "\r" })
+        guard !parts.isEmpty else { return nil }
+        let start = Int32(cssComponents.count)
+        for part in parts {
+            guard let simple = parseSimpleSelector(String(part)) else { return nil }
+            cssComponents.append(simple)
+        }
+        return CSSSelector(start: start, count: Int32(parts.count))
+    }
+
+    private func parseSimpleSelector(_ token: String) -> CSSSimpleSelector? {
+        guard !token.isEmpty else { return nil }
+        var type: CSSTypeMatch = .any
+        var id: StringRef = .none
+        let classStart = Int32(cssSelClasses.count)
+        var classCount: Int32 = 0
+
+        var chars = Substring(token)
+        if chars.first == "*" {
+            chars = chars.dropFirst()
+        } else if let first = chars.first, first != "." && first != "#" {
+            var typeEnd = chars.startIndex
+            while typeEnd < chars.endIndex, chars[typeEnd] != "." && chars[typeEnd] != "#" {
+                typeEnd = chars.index(after: typeEnd)
+            }
+            let typeName = String(chars[chars.startIndex..<typeEnd])
+            guard !typeName.isEmpty else { return nil }
+            type = .named(doc.strings.intern(typeName))
+            chars = chars[typeEnd...]
+        }
+
+        while !chars.isEmpty {
+            let marker = chars.removeFirst()
+            var end = chars.startIndex
+            while end < chars.endIndex, chars[end] != "." && chars[end] != "#" {
+                end = chars.index(after: end)
+            }
+            let name = String(chars[chars.startIndex..<end])
+            chars = chars[end...]
+            guard !name.isEmpty else { return nil }
+            if marker == "." {
+                cssSelClasses.append(doc.strings.intern(name))
+                classCount += 1
+            } else if marker == "#" {
+                id = doc.strings.intern(name)
+            } else {
+                return nil
+            }
+        }
+
+        return CSSSimpleSelector(type: type, id: id, classStart: classStart, classCount: classCount)
+    }
+
+    private func computeSpecificity(_ selector: CSSSelector) -> UInt32 {
+        var a = 0, b = 0, c = 0
+        for i in 0..<Int(selector.count) {
+            let comp = cssComponents[Int(selector.start) + i]
+            if !comp.id.isNone { a += 1 }
+            b += Int(comp.classCount)
+            if case .named = comp.type { c += 1 }
+        }
+        let pa = UInt32(min(a, 1023))
+        let pb = UInt32(min(b, 1023))
+        let pc = UInt32(min(c, 1023))
+        return (pa << 20) | (pb << 10) | pc
+    }
+
+    // MARK: CSS — the post-parse fold (css-support.md §2, §5.3, §5.5)
+
+    /// Runs once, after the SAX parse completes and before `SVGParser.parse`
+    /// returns. Matches every rule against every node in one linear pass and
+    /// applies the winning declarations directly into `doc.nodes[i].style` at
+    /// the cascade order presentation < normal sheet < inline normal <
+    /// important sheet < inline important. All CSS scratch (`cssRules` and
+    /// friends, `inlineDecls`) is local to this delegate and is released when
+    /// it deallocates after this call returns — nothing is retained on `doc`.
+    func foldStyleSheet() {
+        guard !cssRules.isEmpty || !inlineDecls.isEmpty else { return }
+
+        let sortedRules = cssRules.sorted { a, b in
+            if a.specificity != b.specificity { return a.specificity < b.specificity }
+            return a.sourceOrder < b.sourceOrder
+        }
+
+        for i in 0..<doc.nodes.count {
+            var style = doc.nodes[i].style
+            let matching = sortedRules.filter { selectorMatches($0.selector, nodeIndex: i) }
+
+            for rule in matching {
+                applyStyleProperties(cssDeclBlocks[Int(rule.declNormalIndex)], into: &style, doc: &doc)
+            }
+            if let inl = inlineDecls[Int32(i)] {
+                applyStyleProperties(inl.normal, into: &style, doc: &doc)
+            }
+            for rule in matching {
+                applyStyleProperties(cssDeclBlocks[Int(rule.declImportantIndex)], into: &style, doc: &doc)
+            }
+            if let inl = inlineDecls[Int32(i)] {
+                applyStyleProperties(inl.important, into: &style, doc: &doc)
+            }
+
+            doc.nodes[i].style = style
+        }
+    }
+
+    private func selectorMatches(_ selector: CSSSelector, nodeIndex: Int) -> Bool {
+        guard selector.count > 0 else { return false }
+        let rightmost = cssComponents[Int(selector.start + selector.count - 1)]
+        guard simpleMatches(rightmost, nodeIndex: nodeIndex) else { return false }
+        guard selector.count > 1 else { return true }
+
+        var compIdx = Int(selector.count) - 2
+        var ancestor = doc.nodes[nodeIndex].parent
+        while compIdx >= 0 {
+            let comp = cssComponents[Int(selector.start) + compIdx]
+            var found = false
+            while !ancestor.isNone {
+                let current = ancestor
+                ancestor = doc.nodes[Int(ancestor)].parent
+                if simpleMatches(comp, nodeIndex: Int(current)) {
+                    found = true
+                    break
+                }
+            }
+            guard found else { return false }
+            compIdx -= 1
+        }
+        return true
+    }
+
+    private func simpleMatches(_ simple: CSSSimpleSelector, nodeIndex: Int) -> Bool {
+        let node = doc.nodes[nodeIndex]
+        switch simple.type {
+        case .any: break
+        case .named(let t):
+            guard let typeName = doc.strings.string(t), matchesType(typeName, node.kind) else { return false }
+        }
+        if !simple.id.isNone, node.id != simple.id { return false }
+        if simple.classCount > 0 {
+            for i in 0..<Int(simple.classCount) {
+                let want = cssSelClasses[Int(simple.classStart) + i]
+                var has = false
+                for j in 0..<Int(node.classes.count) {
+                    if doc.classNames[Int(node.classes.start) + j] == want { has = true; break }
+                }
+                if !has { return false }
+            }
+        }
+        return true
+    }
+}
+
+// MARK: - CSS transient selector/rule model (css-support.md §5.1; never retained)
+
+private enum CSSTypeMatch {
+    case any
+    case named(StringRef)
+}
+
+private struct CSSSimpleSelector {
+    var type: CSSTypeMatch
+    var id: StringRef = .none
+    var classStart: Int32 = 0
+    var classCount: Int32 = 0
+}
+
+private struct CSSSelector {
+    var start: Int32
+    var count: Int32
+}
+
+private struct CSSRule {
+    var selector: CSSSelector
+    var declNormalIndex: Int32
+    var declImportantIndex: Int32
+    var specificity: UInt32
+    var sourceOrder: Int32
+}
+
+/// Type-selector token → `NodeKind` mapping table (css-support.md §5.2). Total:
+/// anything not listed matches nothing. `tspan` and `text` both map to
+/// `NodeKind.text` — the one deliberate type-selector imprecision (§1).
+private func matchesType(_ str: String, _ kind: NodeKind) -> Bool {
+    switch str {
+    case "svg": if case .svg = kind { return true }
+    case "g": if case .group = kind { return true }
+    case "rect": if case .shape(.rect) = kind { return true }
+    case "circle": if case .shape(.circle) = kind { return true }
+    case "ellipse": if case .shape(.ellipse) = kind { return true }
+    case "line": if case .shape(.line) = kind { return true }
+    case "polyline": if case .poly(_, let closed) = kind { return !closed }
+    case "polygon": if case .poly(_, let closed) = kind { return closed }
+    case "path": if case .path = kind { return true }
+    case "image": if case .image = kind { return true }
+    case "text", "tspan": if case .text = kind { return true }
+    case "use": if case .use = kind { return true }
+    case "symbol": if case .symbol = kind { return true }
+    case "linearGradient", "radialGradient": if case .gradient = kind { return true }
+    case "pattern": if case .pattern = kind { return true }
+    case "clipPath": if case .clipPath = kind { return true }
+    case "mask": if case .mask = kind { return true }
+    case "defs": if case .defs = kind { return true }
+    default: return false
+    }
+    return false
+}
+
+private func stripCSSComments(_ s: String) -> String {
+    var result = ""
+    result.reserveCapacity(s.count)
+    var remainder = Substring(s)
+    while let start = remainder.range(of: "/*") {
+        result += remainder[remainder.startIndex..<start.lowerBound]
+        if let commentEnd = remainder.range(of: "*/", range: start.upperBound..<remainder.endIndex) {
+            remainder = remainder[commentEnd.upperBound...]
+        } else {
+            remainder = Substring("")
+            break
+        }
+    }
+    result += remainder
+    return result
+}
+
+/// Splits a raw `[property: value]` map (as produced by `parseStyleDeclarations`)
+/// into normal and `!important` declarations, stripping the marker. Shared by
+/// inline `style=""` and sheet rule blocks so both parse identically
+/// (css-support.md §4.3/§4.4).
+private func splitImportant(_ raw: [String: String]) -> (normal: [String: String], important: [String: String]) {
+    var normal: [String: String] = [:]
+    var important: [String: String] = [:]
+    let marker = "!important"
+    for (key, value) in raw {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.lowercased().hasSuffix(marker) {
+            let cutIndex = trimmed.index(trimmed.endIndex, offsetBy: -marker.count)
+            important[key] = trimmed[trimmed.startIndex..<cutIndex].trimmingCharacters(in: .whitespacesAndNewlines)
+        } else {
+            normal[key] = value
+        }
+    }
+    return (normal, important)
 }
 
 // MARK: - Node-kind construction
