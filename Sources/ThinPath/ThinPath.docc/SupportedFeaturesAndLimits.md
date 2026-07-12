@@ -22,13 +22,15 @@ This is a factual inventory, not a roadmap. "Deferred" means not implemented in 
 
 **Images** — embedded `<image>` (including `data:` URIs) and external file-based references, decoded lazily at the target's device-pixel size (see <doc:ScaleAwareImageDecoding>). Multi-frame sources render frame 0 only.
 
+**CSS styling** — document `<style>` stylesheets (any position or depth, including `<![CDATA[…]]>`-wrapped and `type="text/css"` sheets) and CSS selectors: type (`rect`), class (`.cls`), id (`#id`), universal (`*`), compound simple selectors (`rect.cls#id`), the descendant combinator (`g .cls`), and comma-separated selector lists. Full `(id, class, type)` specificity ordering, source-order tie-breaking, and `!important` are honored, cascaded correctly against presentation attributes and inline `style=""`. Selectors are resolved once at parse time and folded into each element's style, so there is no runtime matching cost and no change to the flat-arena IR (see <doc:MemoryModel>). Note that `<tspan>` and `<text>` type selectors both match any text node (the IR models both as one kind). Unsupported selector features — attribute selectors (`[fill]`), pseudo-classes/elements (`:hover`), and the child/sibling combinators (`>`, `+`, `~`) — are ignored rather than treated as errors, so an unsupported rule simply never matches; the rest of the sheet still applies.
+
 ### Explicitly deferred
 
 - **SMIL animation** — `<animate>`, `<animateMotion>`, `<set>`, and related elements are not implemented.
-- **CSS animations and transitions** — would require a CSS parser and additional state management beyond the current cascade resolution.
+- **CSS animations and transitions** — static CSS styling via `<style>` and selectors is supported (see above), but `@keyframes`, `animation`, and `transition` are not: they would require time-based state management beyond static cascade resolution.
 - **Advanced filters** — `<filter>`, `<feGaussianBlur>`, and the other filter-effects primitives are not implemented.
 - **Scripting** — `onload`, `onclick`, and other event-handler attributes are out of scope.
-- **Embedded fonts** — `<style>` blocks and `@font-face` parsing are not implemented; font resolution only consults fonts already available on the system.
+- **Embedded fonts** — `@font-face` and font embedding are not implemented; font resolution only consults fonts already available on the system. (`<style>` blocks themselves *are* parsed for selector styling — see **CSS styling** above — but any `@font-face` at-rule inside one is skipped.)
 - **General blend modes** — `mix-blend-mode` and isolated-blend compositing are not implemented. The only blend applied internally is `destinationIn` for masking; there is no support for `multiply`, `screen`, `overlay`, or the other separable/non-separable blend modes.
 
 ### Not a goal: interactivity
