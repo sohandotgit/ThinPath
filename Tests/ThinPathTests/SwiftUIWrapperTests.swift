@@ -114,9 +114,6 @@ enum HostingSnapshot {
         window.contentView = hostingView
         window.orderFrontRegardless()
         hostingView.layoutSubtreeIfNeeded()
-        // Give SwiftUI's render pipeline a runloop turn to flush the initial
-        // content into the hosting view's layer before we snapshot it.
-        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
 
         // A view that pins its own rasterization scale (e.g. `ThinPathView`
         // with an explicit `scale:`) must be captured at THAT scale, not the
@@ -130,28 +127,54 @@ enum HostingSnapshot {
         let pixelHeight = Int((size.height * captureScale).rounded())
         guard pixelWidth > 0, pixelHeight > 0 else { return nil }
 
-        guard let context = CGContext(
-            data: nil, width: pixelWidth, height: pixelHeight,
-            bitsPerComponent: 8, bytesPerRow: 0,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else {
-            XCTFail("could not create decode context", file: file, line: line)
-            return nil
-        }
-        // `CALayer.render(in:)` renders using the layer's own (Core
-        // Animation) y-down convention; a plain CGBitmapContext is y-up, so
-        // without this flip the capture comes out vertically mirrored.
-        context.translateBy(x: 0, y: CGFloat(pixelHeight))
-        context.scaleBy(x: captureScale, y: -captureScale)
-
         hostingView.wantsLayer = true
         guard let layer = hostingView.layer else {
             XCTFail("hosting view has no backing layer", file: file, line: line)
             return nil
         }
-        layer.render(in: context)
-        return context.makeImage()
+
+        func capture() -> (image: CGImage, bytes: Data)? {
+            guard let context = CGContext(
+                data: nil, width: pixelWidth, height: pixelHeight,
+                bitsPerComponent: 8, bytesPerRow: 0,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else {
+                XCTFail("could not create decode context", file: file, line: line)
+                return nil
+            }
+            // `CALayer.render(in:)` renders using the layer's own (Core
+            // Animation) y-down convention; a plain CGBitmapContext is y-up,
+            // so without this flip the capture comes out vertically mirrored.
+            context.translateBy(x: 0, y: CGFloat(pixelHeight))
+            context.scaleBy(x: captureScale, y: -captureScale)
+            layer.render(in: context)
+            guard let image = context.makeImage(), let data = context.data else { return nil }
+            let bytes = Data(bytes: data, count: context.bytesPerRow * pixelHeight)
+            return (image, bytes)
+        }
+
+        // Give SwiftUI's render pipeline runloop turns to flush content into
+        // the hosting view's layer before trusting the snapshot. A single
+        // fixed sleep-then-capture was flaky under CI load (the headless
+        // runner's display cycle can take longer than on a local machine to
+        // actually commit the layer tree) — instead, keep pumping the run
+        // loop and re-capturing until two consecutive captures come back
+        // byte-identical (the layer has settled), or a generous overall
+        // budget elapses, in which case we fall back to the last capture
+        // rather than fail outright.
+        let deadline = Date().addingTimeInterval(2.0)
+        var previous = capture()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        while Date() < deadline {
+            let next = capture()
+            if let previous, let next, previous.bytes == next.bytes {
+                return next.image
+            }
+            previous = next
+            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        }
+        return previous?.image
     }
 
     /// If `view` is (or wraps) a `ThinPathView` constructed with a non-nil
