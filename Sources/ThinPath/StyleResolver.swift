@@ -74,6 +74,10 @@ public struct ComputedStyle: Equatable {
     public var clipPath: NodeIndex
     public var mask: NodeIndex
 
+    // Compositing (non-inherited, like `opacity`) — see Design/blend-modes.md.
+    public var blendMode: BlendMode
+    public var isolation: Isolation
+
     /// The CSS initial values (the root's starting context). Per SVG/CSS these
     /// are the values an element gets when a property is neither specified nor
     /// inherited.
@@ -99,7 +103,9 @@ public struct ComputedStyle: Equatable {
         textAnchor: .start,
         visibility: .visible,
         clipPath: .none,
-        mask: .none
+        mask: .none,
+        blendMode: .normal,
+        isolation: .auto
     )
 }
 
@@ -169,7 +175,12 @@ public struct StyleResolver {
 
             // clip-path / mask apply to THIS element only → non-inherited.
             clipPath:        raw.clipPath ?? .none,                // non-inherited
-            mask:            raw.mask ?? .none                     // non-inherited
+            mask:            raw.mask ?? .none,                    // non-inherited
+
+            // blendMode/isolation are non-inherited → initial, never the
+            // parent's value (cf. groupOpacity above; Design/blend-modes.md §2.1/§6).
+            blendMode:       raw.blendMode ?? .normal,              // non-inherited
+            isolation:       raw.isolation ?? .auto                 // non-inherited
         )
     }
 

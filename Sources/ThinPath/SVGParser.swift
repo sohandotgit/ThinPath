@@ -776,6 +776,8 @@ private func applyStyleProperties(_ props: [String: String], into style: inout R
             if let id = extractURLId(v) { style.clipPath = doc.idMap[doc.strings.intern(id)] ?? NodeIndex.none }
         case "mask":
             if let id = extractURLId(v) { style.mask = doc.idMap[doc.strings.intern(id)] ?? NodeIndex.none }
+        case "mix-blend-mode": style.blendMode = parseBlendMode(v)
+        case "isolation": style.isolation = parseIsolation(v)
         default:
             break
         }
@@ -1026,6 +1028,39 @@ private func parseVisibility(_ s: String) -> Visibility? {
     case "visible": return .visible
     case "hidden": return .hidden
     case "collapse": return .collapse
+    default: return nil
+    }
+}
+
+/// `mix-blend-mode` keyword → `BlendMode`. Unknown/malformed → `nil`, which
+/// leaves `RawStyle.blendMode` unset so resolution falls back to the initial
+/// value `.normal` (CSS "invalid value → initial"; Design/blend-modes.md §2.2).
+private func parseBlendMode(_ s: String) -> BlendMode? {
+    switch s.lowercased() {
+    case "normal": return .normal
+    case "multiply": return .multiply
+    case "screen": return .screen
+    case "overlay": return .overlay
+    case "darken": return .darken
+    case "lighten": return .lighten
+    case "color-dodge": return .colorDodge
+    case "color-burn": return .colorBurn
+    case "hard-light": return .hardLight
+    case "soft-light": return .softLight
+    case "difference": return .difference
+    case "exclusion": return .exclusion
+    case "hue": return .hue
+    case "saturation": return .saturation
+    case "color": return .color
+    case "luminosity": return .luminosity
+    default: return nil
+    }
+}
+
+private func parseIsolation(_ s: String) -> Isolation? {
+    switch s.lowercased() {
+    case "auto": return .auto
+    case "isolate": return .isolate
     default: return nil
     }
 }

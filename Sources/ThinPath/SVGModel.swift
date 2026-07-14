@@ -528,6 +528,10 @@ public struct RawStyle: Equatable {
     public var clipPath: NodeIndex?   // resolved clipPath node, or nil
     public var mask: NodeIndex?       // resolved mask node, or nil
 
+    // Compositing (non-inherited, like `opacity`) — see Design/blend-modes.md.
+    public var blendMode: BlendMode?  // mix-blend-mode; nil = unspecified
+    public var isolation: Isolation?  // isolation; nil = unspecified
+
     public init() {}
 }
 
@@ -540,6 +544,20 @@ public enum FontStyle { case normal, italic, oblique }
 public enum TextAnchor { case start, middle, end }
 public enum Visibility { case visible, hidden, collapse }
 public enum Display { case inline, none }   // only `none` is load-bearing here
+
+/// `mix-blend-mode` (CSS Compositing). Non-inherited; initial `.normal`. One
+/// case per CSS keyword, mapped 1:1 to `CGBlendMode` (`BlendMode.cgBlendMode`
+/// in RenderContext.swift) — CG owns every blend equation, this enum only
+/// names the CSS surface. See Design/blend-modes.md §3.
+public enum BlendMode {
+    case normal, multiply, screen, overlay, darken, lighten,
+         colorDodge, colorBurn, hardLight, softLight, difference, exclusion,
+         hue, saturation, color, luminosity
+}
+
+/// `isolation` (CSS Compositing). Non-inherited; initial `.auto`. See
+/// Design/blend-modes.md §6.
+public enum Isolation { case auto, isolate }
 
 public struct FontWeight: Equatable {
     public var value: Int   // 100...900; normal=400, bold=700

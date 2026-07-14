@@ -27,6 +27,33 @@
 import CoreGraphics
 import Foundation
 
+// MARK: - BlendMode -> CGBlendMode
+
+extension BlendMode {
+    /// The whole "algorithm" of the blend feature: a pure 1:1 lookup. CG owns
+    /// the equation behind every case (Design/blend-modes.md §3).
+    public var cgBlendMode: CGBlendMode {
+        switch self {
+        case .normal: return .normal
+        case .multiply: return .multiply
+        case .screen: return .screen
+        case .overlay: return .overlay
+        case .darken: return .darken
+        case .lighten: return .lighten
+        case .colorDodge: return .colorDodge
+        case .colorBurn: return .colorBurn
+        case .hardLight: return .hardLight
+        case .softLight: return .softLight
+        case .difference: return .difference
+        case .exclusion: return .exclusion
+        case .hue: return .hue
+        case .saturation: return .saturation
+        case .color: return .color
+        case .luminosity: return .luminosity
+        }
+    }
+}
+
 // MARK: - TransformRef resolution helper
 
 extension SVGDocument {
@@ -114,6 +141,14 @@ public final class RenderContext {
     /// Depth of nested offscreen layers currently open. A guard against runaway
     /// layering (deeply nested group-opacity/mask). See `maxLayerDepth`.
     public private(set) var layerDepth: Int = 0
+
+    /// High-water mark of `layerDepth` over this pass — the deterministic
+    /// shadow of the peak-transient-memory question (Design/blend-modes.md
+    /// §8 "blend-peak"): peak concurrent buffers is the deepest chain of
+    /// *simultaneously open* layers on one DFS path, not the total count of
+    /// isolating elements in the document. Siblings open/close in sequence
+    /// and never bump this past the true nesting depth.
+    public private(set) var peakLayerDepth: Int = 0
 
     /// Hard cap on nested offscreen layers. Beyond this we degrade gracefully
     /// (composite without isolation) rather than risk unbounded scratch memory.
@@ -218,8 +253,9 @@ public final class RenderContext {
     ///     construction itself may need a scratch bitmap — see Compositing.md
     ///     PROFILE-CHECK.)
     ///  4. **An isolated blend** (mix-blend-mode ≠ normal / explicit isolation).
-    ///     Not modeled yet; the hook is here so it slots in without reshaping the
-    ///     walk.
+    ///     The blend must apply to the element's flattened result, not each
+    ///     paint independently (same overlap argument as case 2); see
+    ///     Design/blend-modes.md §4.
     ///
     /// NOT in this list, on purpose:
     ///  * `clip-path` — realized as a CGContext clip (a path or the intersection
@@ -237,7 +273,8 @@ public final class RenderContext {
                                     style: ComputedStyle,
                                     paintsFillAndStroke: Bool) -> Bool {
         if !style.mask.isNone { return true }                     // (3)
-        // (4) isolated blend — TODO(render-thread) when blend modes are modeled.
+        if style.blendMode != .normal { return true }             // (4a) isolated blend
+        if style.isolation == .isolate { return true }            // (4b) explicit isolation
         guard style.groupOpacity < 1 else { return false }
         switch document.node(node).kind {
         case .group, .svg, .symbol, .use:
@@ -270,8 +307,17 @@ public final class RenderContext {
     ///     case the clamp falls back to the current clip ∩ dirty rect.
     ///   - alpha: the group alpha to composite the finished layer with (1 for
     ///     mask/blend-only layers).
+    ///   - blend: the `CGBlendMode` to composite the finished layer with
+    ///     against its backdrop (`.normal` for plain group-opacity/mask
+    ///     layers). Captured into the gstate at begin time — CG's
+    ///     `beginTransparencyLayer` snapshots alpha + blend mode then, and
+    ///     `endTransparencyLayer` composites using that snapshot (Design/
+    ///     blend-modes.md §5). Reset to `.normal` immediately after so
+    ///     children/paints drawn inside the layer composite among themselves
+    ///     with plain src-over, not the group's blend mode.
     @discardableResult
-    public func beginIsolationLayer(elementDeviceBounds: CGRect, alpha: CGFloat) -> Bool {
+    public func beginIsolationLayer(elementDeviceBounds: CGRect, alpha: CGFloat,
+                                    blend: CGBlendMode = .normal) -> Bool {
         guard layerDepth < maxLayerDepth else { return false }    // graceful degrade
 
         var clamped = intersectionOrEmpty(current.clipDeviceBounds, dirtyRect)
@@ -289,15 +335,18 @@ public final class RenderContext {
         frames[frames.count - 1].clipDeviceBounds = clamped
 
         cg.setAlpha(alpha)
+        cg.setBlendMode(blend)                 // captured at begin (composite-time)
         cg.beginTransparencyLayer(auxiliaryInfo: nil)
+        cg.setBlendMode(.normal)               // children composite normally *within* the layer
         layerDepth += 1
+        peakLayerDepth = max(peakLayerDepth, layerDepth)
         return true
     }
 
     public func endIsolationLayer() {
         cg.endTransparencyLayer()
         layerDepth -= 1
-        cg.restoreGState()
+        cg.restoreGState()          // also restores blend mode — no leak to siblings
         frames.removeLast()
     }
 
@@ -462,7 +511,8 @@ public struct RenderWalk<V: NodeVisitor> {
         if isolate {
             let bounds = context.subtreeDeviceBounds(of: node)
             let alpha = style.mask.isNone ? style.groupOpacity : 1   // mask composited separately
-            layerOpen = context.beginIsolationLayer(elementDeviceBounds: bounds, alpha: alpha)
+            layerOpen = context.beginIsolationLayer(elementDeviceBounds: bounds, alpha: alpha,
+                                                    blend: style.blendMode.cgBlendMode)
             if !layerOpen, !style.mask.isNone {
                 // Clip clamped to empty → invisible; nothing to draw.
                 return

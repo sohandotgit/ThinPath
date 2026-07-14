@@ -18,6 +18,10 @@ This is a factual inventory, not a roadmap. "Deferred" means not implemented in 
 
 **Clipping and masking** — `<clipPath>` and `<mask>`, including `clipPathUnits`, `maskUnits`, and `maskContentUnits` bounding-box mapping.
 
+**Compositing** — `mix-blend-mode` and `isolation: isolate`. A blended (or explicitly isolated) element composites through a single transparency layer — the same isolation machinery used for group `opacity` and masks, adding no second offscreen surface (verified memory-safe by profiling). All 16 CSS blend modes (`normal`, `multiply`, `screen`, `overlay`, `darken`, `lighten`, `color-dodge`, `color-burn`, `hard-light`, `soft-light`, `difference`, `exclusion`, `hue`, `saturation`, `color`, `luminosity`) are parsed, mapped 1:1 to the corresponding `CGBlendMode`, and verified against exact pixel references computed by an independent CSS-Compositing oracle. ThinPath renders in device sRGB, so Core Graphics evaluates each blend on the sRGB-encoded channels — the CSS-correct result — including the four non-separable modes, which match the CSS luminance model exactly. An unknown keyword degrades to `normal` (invalid value → initial), never a parse error.
+
+> **Known limitation — `soft-light`.** Core Graphics' `soft-light` implementation is not the W3C CSS Compositing soft-light formula; the two differ by up to ~4% per channel on mid-tone backdrops (e.g. for a 50%-grey backdrop under an opaque red source, CSS specifies `181` where Core Graphics produces `192`). ThinPath uses the Core Graphics result. The other 15 modes match the CSS specification exactly.
+
 **Text** — single-line `<text>` only: exactly one positioned run per element (`x`, `y`, text content), honoring `font-family`, `font-size`, `font-weight`, `font-style`, and `text-anchor`, filled with a solid color. There is no `<tspan>` support, no per-glyph `dx`/`dy` shifting, no multiline layout, no bidi handling, and no text-on-a-path — the IR carries one run per text node, so richer layout is not representable without extending the model first.
 
 **Images** — embedded `<image>` (including `data:` URIs) and external file-based references, decoded lazily at the target's device-pixel size (see <doc:ScaleAwareImageDecoding>). Multi-frame sources render frame 0 only.
@@ -31,7 +35,7 @@ This is a factual inventory, not a roadmap. "Deferred" means not implemented in 
 - **Advanced filters** — `<filter>`, `<feGaussianBlur>`, and the other filter-effects primitives are not implemented.
 - **Scripting** — `onload`, `onclick`, and other event-handler attributes are out of scope.
 - **Embedded fonts** — `@font-face` and font embedding are not implemented; font resolution only consults fonts already available on the system. (`<style>` blocks themselves *are* parsed for selector styling — see **CSS styling** above — but any `@font-face` at-rule inside one is skipped.)
-- **General blend modes** — `mix-blend-mode` and isolated-blend compositing are not implemented. The only blend applied internally is `destinationIn` for masking; there is no support for `multiply`, `screen`, `overlay`, or the other separable/non-separable blend modes.
+- **`background-blend-mode` and Porter-Duff operators** — `mix-blend-mode` *is* supported (see **Compositing** above), but `background-blend-mode` (ThinPath has no CSS backgrounds) and compositing operators beyond `src-over` (`clear`, `xor`, …) are out of scope; `mix-blend-mode` never selects those.
 
 ### Not a goal: interactivity
 
