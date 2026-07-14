@@ -1,0 +1,14 @@
+<!--
+T-B10: `normal` (and unspecified) never isolates / changes pixels. Two
+identical opaque rects side by side over a white backdrop: the left one
+has mix-blend-mode="normal" explicitly, the right has no blend attribute
+at all. Both must render pixel-identical to a plain src-over fill — i.e.
+exactly their own fill color, since they are fully opaque.
+  - (35,50) [normal] -> #3366CCFF, tolerance 0.
+  - (65,50) [absent]  -> #3366CCFF, tolerance 0.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <rect x="20" y="30" width="30" height="40" fill="#3366CC" mix-blend-mode="normal"/>
+  <rect x="50" y="30" width="30" height="40" fill="#3366CC"/>
+</svg>

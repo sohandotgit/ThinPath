@@ -1,0 +1,21 @@
+<!--
+T-B6: fill+stroke shape blends as ONE flattened unit (no single-paint fold).
+Backdrop D=(255,255,255) white (multiply-by-white is the identity, so the
+expected answer is gamma-invariant and gives a clean pass/fail signal).
+Shape: rect fill=(0,255,0) green, stroke=(255,0,0) red width=30,
+mix-blend-mode="multiply". The opaque stroke fully covers the fill in the
+overlap band, so the CORRECT (flatten-then-blend-once) answer is
+multiply(stroke, D) = multiply(red, white) = red, regardless of the fill
+underneath. The WRONG answer (stroke blended against an already-blended
+fill, i.e. blending each paint separately) would be
+multiply(red, multiply(green, white)) = multiply(red, green) = black —
+a different, distinguishable pixel. Sample point (50,28) sits in the top
+stroke band (stroke spans y in [5,35]) AND inside the fill rect (y>=20),
+i.e. the fill/stroke overlap, >=6px from the nearest AA edge (y=35).
+  - (50,28) -> #FF0000FF (red), tolerance 0.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <rect x="20" y="20" width="60" height="60" fill="#00FF00" stroke="#FF0000" stroke-width="30"
+        mix-blend-mode="multiply"/>
+</svg>

@@ -1,0 +1,9 @@
+<!--
+T-B2a: screen over black = source. Backdrop D=(0,0,0) black, source
+S=(255,0,0) red. screen(S,D)=255-(255-S)(255-D)/255=(255,0,0).
+  - (50,50) -> #FF0000FF, tolerance 0.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#000000"/>
+  <rect x="20" y="20" width="60" height="60" fill="#FF0000" mix-blend-mode="screen"/>
+</svg>

@@ -1,0 +1,9 @@
+<!--
+T-B5: difference with clean operands. D=(255,255,255) white,
+S=(255,0,255) magenta, difference=|S-D|=(0,255,0) green.
+  - (50,50) -> #00FF00FF, tolerance 0.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <rect x="20" y="20" width="60" height="60" fill="#FF00FF" mix-blend-mode="difference"/>
+</svg>

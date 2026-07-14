@@ -1,0 +1,24 @@
+<!--
+T-B-M5: every layer is balanced (no leaked open layer) on early-`return`
+paths in `RenderWalk.render`. Three blended elements that each bail before
+reaching `endIsolationLayer` through a DIFFERENT path:
+  1. `g1`: mix-blend-mode set, but `clip-path` resolves to fully outside the
+     element (empty clamp) — `beginIsolationLayer` returns false internally
+     via the empty-clamp guard.
+  2. `g2`: mix-blend-mode set, but `display:none` prunes the subtree before
+     isolation is even considered.
+  3. `g3`: mix-blend-mode set on a zero-area rect (empty subtree bbox).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <defs>
+    <clipPath id="faroff" clipPathUnits="userSpaceOnUse">
+      <rect x="1000" y="1000" width="10" height="10"/>
+    </clipPath>
+  </defs>
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <rect x="10" y="10" width="20" height="20" fill="#3366CC" mix-blend-mode="multiply"
+        clip-path="url(#faroff)"/>
+  <rect x="40" y="10" width="20" height="20" fill="#3366CC" mix-blend-mode="screen"
+        display="none"/>
+  <rect x="70" y="10" width="0" height="0" fill="#3366CC" mix-blend-mode="difference"/>
+</svg>

@@ -1,0 +1,24 @@
+<!--
+T-B9 (isolated leg): `isolation: isolate` confines a descendant blend to the
+group's own backdrop. Outer backdrop D=(255,0,0) red. Inside
+`<g isolation="isolate">`: P=(0,255,0) green at fill-opacity 0.5 (so D would
+show through if not isolated), then Q=(255,255,255) white,
+mix-blend-mode="multiply", fully overlapping P. Because the group is
+isolated, Q's transparency layer starts fully transparent and P is drawn
+into THAT layer first — Q must multiply against P (composited over
+nothing), never against the outer D. Since Q is white (the identity
+element for multiply), the sampled pixel reveals exactly what Q saw as its
+backdrop: a fully-opaque composite of P-over-transparent, independent of D.
+See blend_isolation_not_isolated.svg for the control (no `isolation`
+attribute) where Q instead sees P painted directly over D and the sampled
+pixel differs.
+  - (50,50): the group case must NOT match blend_isolation_not_isolated.svg's
+    result (see RenderTests.testIsolationConfinesDescendantBlend).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FF0000"/>
+  <g isolation="isolate">
+    <rect x="20" y="20" width="60" height="60" fill="#00FF00" fill-opacity="0.5"/>
+    <rect x="35" y="35" width="30" height="30" fill="#FFFFFF" mix-blend-mode="multiply"/>
+  </g>
+</svg>

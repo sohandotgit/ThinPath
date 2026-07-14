@@ -1,0 +1,19 @@
+<!--
+T-B7: blend is orthogonal to the opacity split. Backdrop D=(0,0,0) black.
+Source rect fill=(255,255,255) white, fill-opacity="0.5",
+mix-blend-mode="screen". Per design Sec 4.2, fill-opacity folds into the
+paint alpha INSIDE the layer (today's fold), then the flattened layer
+(white @ alpha 0.5 over transparent) screens onto black at
+endTransparencyLayer. This must land on a MID grey — neither full white
+(255, which would mean opacity was ignored) nor black (0, which would mean
+opacity was applied AFTER the blend instead of before) — pinning that the
+fold happens before the composite-time blend, per the design's stated
+order.
+  - (50,50) -> Pixel(g,g,g) with 40 < g < 200 (exact g is computed from the
+    actual CG composite, see RenderTests.testBlendOrthogonalToOpacitySplit).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#000000"/>
+  <rect x="20" y="20" width="60" height="60" fill="#FFFFFF" fill-opacity="0.5"
+        mix-blend-mode="screen"/>
+</svg>

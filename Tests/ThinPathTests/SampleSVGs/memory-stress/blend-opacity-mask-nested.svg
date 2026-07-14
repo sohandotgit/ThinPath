@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect x="0" y="0" width="1024" height="1024" fill="#FFFFFF"/>
+  <defs>
+    <mask id="m0" maskUnits="userSpaceOnUse"><rect x="0" y="0" width="1024" height="1024" fill="#FFFFFF"/></mask>
+    <mask id="m1" maskUnits="userSpaceOnUse"><rect x="1" y="1" width="1022" height="1022" fill="#FFFFFF"/></mask>
+    <mask id="m2" maskUnits="userSpaceOnUse"><rect x="2" y="2" width="1020" height="1020" fill="#FFFFFF"/></mask>
+    <mask id="m3" maskUnits="userSpaceOnUse"><rect x="3" y="3" width="1018" height="1018" fill="#FFFFFF"/></mask>
+    <mask id="m4" maskUnits="userSpaceOnUse"><rect x="4" y="4" width="1016" height="1016" fill="#FFFFFF"/></mask>
+    <mask id="m5" maskUnits="userSpaceOnUse"><rect x="5" y="5" width="1014" height="1014" fill="#FFFFFF"/></mask>
+    <mask id="m6" maskUnits="userSpaceOnUse"><rect x="6" y="6" width="1012" height="1012" fill="#FFFFFF"/></mask>
+    <mask id="m7" maskUnits="userSpaceOnUse"><rect x="7" y="7" width="1010" height="1010" fill="#FFFFFF"/></mask>
+  </defs>
+  <g opacity="0.9" mask="url(#m7)" mix-blend-mode="multiply"><g opacity="0.9" mask="url(#m6)" mix-blend-mode="multiply"><g opacity="0.9" mask="url(#m5)" mix-blend-mode="multiply"><g opacity="0.9" mask="url(#m4)" mix-blend-mode="multiply"><g opacity="0.9" mask="url(#m3)" mix-blend-mode="multiply"><g opacity="0.9" mask="url(#m2)" mix-blend-mode="multiply"><g opacity="0.9" mask="url(#m1)" mix-blend-mode="multiply"><g opacity="0.9" mask="url(#m0)" mix-blend-mode="multiply"><rect x="64" y="64" width="896" height="896" fill="#CC6633"/></g></g></g></g></g></g></g></g>
+</svg>

@@ -1,0 +1,11 @@
+<!--
+T-B15: an unknown/malformed `mix-blend-mode` keyword degrades to `normal`
+(no fatal error; unknown value dropped -> initial). Fully opaque fill over
+a white backdrop, so if the property were dropped correctly the pixel is
+exactly the fill color.
+  - (50,50) -> #3366CCFF, tolerance 0.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <rect x="20" y="20" width="60" height="60" fill="#3366CC" mix-blend-mode="frobnicate"/>
+</svg>

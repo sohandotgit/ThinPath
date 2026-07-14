@@ -1,0 +1,14 @@
+<!--
+T-B-M3 (fixture B) / T-B-M4: 8 nested `<g mix-blend-mode="multiply">`
+groups, one shape at the bottom. Each ancestor's layer stays open while its
+descendant's layer opens, so peakLayerDepth must equal the nesting depth
+(8) — proving peak tracks concurrently-open depth, not document size.
+Also used by T-B-M4 with `maxLayerDepth` capped below 8 to exercise
+bounded graceful degradation.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FFFFFF"/>
+  <g mix-blend-mode="multiply"><g mix-blend-mode="multiply"><g mix-blend-mode="multiply"><g mix-blend-mode="multiply"><g mix-blend-mode="multiply"><g mix-blend-mode="multiply"><g mix-blend-mode="multiply"><g mix-blend-mode="multiply">
+    <rect x="20" y="20" width="60" height="60" fill="#3366CC"/>
+  </g></g></g></g></g></g></g></g>
+</svg>

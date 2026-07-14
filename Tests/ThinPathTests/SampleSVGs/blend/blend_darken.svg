@@ -1,0 +1,9 @@
+<!--
+T-B3: darken (per-channel min; gamma-independent for ANY colors).
+D=(200,50,200), S=(50,200,50), darken=min channelwise=(50,50,50).
+  - (50,50) -> #323232FF, tolerance 0.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#C832C8"/>
+  <rect x="20" y="20" width="60" height="60" fill="#32C832" mix-blend-mode="darken"/>
+</svg>

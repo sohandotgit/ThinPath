@@ -1,0 +1,16 @@
+<!--
+T-B9 (control leg): identical geometry to blend_isolation_isolated.svg but
+the group carries NO `isolation` attribute (and is not otherwise isolated —
+no opacity/mask/blend of its own), so P paints directly onto the outer
+backdrop D and Q's multiply sees P-over-D, not P alone. This must render
+DIFFERENTLY from blend_isolation_isolated.svg at the same sample point,
+pinning that `isolation="isolate"` is load-bearing.
+  - (50,50): must NOT match blend_isolation_isolated.svg's result.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#FF0000"/>
+  <g>
+    <rect x="20" y="20" width="60" height="60" fill="#00FF00" fill-opacity="0.5"/>
+    <rect x="35" y="35" width="30" height="30" fill="#FFFFFF" mix-blend-mode="multiply"/>
+  </g>
+</svg>

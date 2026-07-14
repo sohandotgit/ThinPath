@@ -1,0 +1,9 @@
+<!--
+T-B2b: screen. Backdrop D=(0,0,255) blue, source S=(255,0,0) red.
+screen=(255,0,255) magenta.
+  - (50,50) -> #FF00FFFF, tolerance 0.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#0000FF"/>
+  <rect x="20" y="20" width="60" height="60" fill="#FF0000" mix-blend-mode="screen"/>
+</svg>

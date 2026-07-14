@@ -270,6 +270,205 @@ final class RenderTests: XCTestCase {
         let image = render("images/image_preserve_aspect_ratio", width: 80, height: 80)
         SnapshotSupport.assertMatchesGolden(image, referenceName: "image_preserve_aspect_ratio")
     }
+
+    // MARK: - Tier 1: EXACT — mix-blend-mode (Design/blend-modes.md, Tests/blend-modes.spec.md)
+
+    // T-B1 — multiply is the load-bearing begin-time-capture case.
+    func testBlendMultiplyOverWhiteIsIdentity() {
+        let image = render("blend/blend_multiply_white", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(0xFF, 0x00, 0x00))
+    }
+
+    func testBlendMultiplyRedOverGreenIsBlack() {
+        let image = render("blend/blend_multiply_green", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(0x00, 0x00, 0x00))
+    }
+
+    // T-B2 — screen.
+    func testBlendScreenOverBlackIsSource() {
+        let image = render("blend/blend_screen_black", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(0xFF, 0x00, 0x00))
+    }
+
+    func testBlendScreenRedOverBlueIsMagenta() {
+        let image = render("blend/blend_screen_blue", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(0xFF, 0x00, 0xFF))
+    }
+
+    // T-B3 — darken (per-channel min; gamma-independent).
+    func testBlendDarkenTakesChannelwiseMin() {
+        let image = render("blend/blend_darken", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(50, 50, 50))
+    }
+
+    // T-B4 — lighten (per-channel max; gamma-independent).
+    func testBlendLightenTakesChannelwiseMax() {
+        let image = render("blend/blend_lighten", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(200, 200, 200))
+    }
+
+    // T-B5 — difference.
+    func testBlendDifferenceOfWhiteAndMagentaIsGreen() {
+        let image = render("blend/blend_difference", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(0x00, 0xFF, 0x00))
+    }
+
+    // T-B6 — fill+stroke shape blends as ONE flattened unit (no single-paint fold).
+    func testBlendFillStrokeOverlapBlendsAsFlattenedUnit() {
+        let image = render("blend/blend_fill_stroke_overlap", width: 100, height: 100)
+        // Correct: multiply(stroke=red, backdrop=white) = red, since the opaque
+        // stroke fully covers the fill in the overlap and the layer flattens
+        // fill+stroke before blending once. A per-paint blend (fill blended
+        // against white, then stroke blended against the ALREADY-blended fill)
+        // would instead land on multiply(red, green) = black.
+        SnapshotSupport.assertPixel(image, x: 50, y: 28, equals: Pixel(0xFF, 0x00, 0x00))
+    }
+
+    // T-B7 — blend is orthogonal to the opacity split (fill-opacity folds
+    // INSIDE the layer; the flattened layer then screens onto the backdrop).
+    func testBlendOrthogonalToOpacitySplit() {
+        let image = render("blend/blend_opacity_orthogonal", width: 100, height: 100)
+        let pixel = SnapshotSupport.pixel(in: image, x: 50, y: 50)
+        // Neither "opacity ignored" (255) nor "opacity applied after blend" (0).
+        XCTAssertTrue(pixel.r > 40 && pixel.r < 200, "expected a mid-tone grey, got \(pixel)")
+        XCTAssertEqual(pixel.r, pixel.g)
+        XCTAssertEqual(pixel.g, pixel.b)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(128, 128, 128), tolerance: 2)
+    }
+
+    // T-B8 — a blend mode does not leak to later siblings.
+    func testBlendDoesNotLeakToLaterSiblings() {
+        let image = render("blend/blend_sibling_no_leak", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 75, y: 75, equals: Pixel(0x50, 0xA0, 0xF0))
+    }
+
+    // T-B9 — `isolation: isolate` confines a descendant blend to the group's backdrop.
+    func testIsolationConfinesDescendantBlend() {
+        let isolated = render("blend/blend_isolation_isolated", width: 100, height: 100)
+        let notIsolated = render("blend/blend_isolation_not_isolated", width: 100, height: 100)
+        let isolatedPixel = SnapshotSupport.pixel(in: isolated, x: 50, y: 50)
+        let notIsolatedPixel = SnapshotSupport.pixel(in: notIsolated, x: 50, y: 50)
+        XCTAssertGreaterThan(
+            isolatedPixel.maxChannelDelta(from: notIsolatedPixel), 20,
+            "isolation must change what the descendant blend composites against: "
+            + "isolated=\(isolatedPixel) notIsolated=\(notIsolatedPixel)"
+        )
+        // Isolated: Q (white) multiplies against P-over-transparent only, ending
+        // fully opaque before the group composites onto the (irrelevant) outer
+        // backdrop — green channel stays high (P's green shows through).
+        SnapshotSupport.assertPixel(isolated, x: 50, y: 50, equals: Pixel(128, 255, 128), tolerance: 2)
+        // Not isolated: Q multiplies against P-over-red (already washed toward
+        // red), so the green channel that isolation preserved is gone.
+        SnapshotSupport.assertPixel(notIsolated, x: 50, y: 50, equals: Pixel(128, 128, 0), tolerance: 2)
+    }
+
+    // T-B10 — `normal` (and unspecified) never isolates / changes pixels.
+    func testBlendNormalAndAbsentAreNoOps() {
+        let image = render("blend/blend_normal_noop", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 35, y: 50, equals: Pixel(0x33, 0x66, 0xCC))
+        SnapshotSupport.assertPixel(image, x: 65, y: 50, equals: Pixel(0x33, 0x66, 0xCC))
+    }
+
+    // T-B15 — unknown `mix-blend-mode` keyword degrades to `normal`.
+    func testUnknownBlendModeKeywordDegradesToNormal() {
+        let image = render("blend/blend_unknown_keyword", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(0x33, 0x66, 0xCC))
+    }
+
+    // MARK: - EXACT anchors — remaining modes + color-space pin (S12 amendment)
+    //
+    // These replace the spec's originally-planned GOLDEN tier (T-B11–B14,
+    // T-B10g) per the S12/S9 amendment recorded in Tests/blend-modes.spec.md §4.
+    // Expected values are computed by an independent CSS-Compositing oracle (NOT
+    // Core Graphics) over flat, opaque, non-overlapping regions and sampled far
+    // from every edge — hand-checkable exact answers, no reference PNGs. Because
+    // ThinPath renders in device sRGB, CG evaluates each CGBlendMode on the
+    // sRGB-encoded channel values, which is the CSS-correct result; every case
+    // below matched the oracle to delta 0 at authoring time except soft-light
+    // (see below). Tolerances follow the spec §2 rule: 0 for extreme/clean
+    // operands, ≤2 for mid-tone/multi-step rounding.
+
+    // COLOR-SPACE PIN — the load-bearing anchor for "blend-colorspace". A
+    // mid-tone multiply is the one case whose answer diverges by color space:
+    // sRGB-encoded multiply(128,128)=64; a silently-linearized context would
+    // give ~55. This fixes the render context as sRGB and validates every
+    // mid-tone/non-separable case below as a consequence.
+    func testBlendMultiplyMidToneConfirmsSRGBSpace() {
+        let image = render("blend/blend_colorspace_multiply_mid", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(64, 64, 64))
+    }
+
+    // Remaining separable modes over flat regions.
+    func testBlendOverlayKeysOffBackdrop() {
+        let image = render("blend/blend_overlay", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(0, 255, 0))
+    }
+
+    func testBlendHardLightKeysOffSource() {
+        let image = render("blend/blend_hardlight", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(0, 255, 0))
+    }
+
+    func testBlendColorDodge() {
+        let image = render("blend/blend_colordodge", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(100, 255, 100))
+    }
+
+    func testBlendColorBurn() {
+        let image = render("blend/blend_colorburn", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(100, 0, 100))
+    }
+
+    func testBlendExclusionDiffersFromDifference() {
+        // exclusion(0.5,·) stays mid-grey where difference would drop a channel
+        // to 0 — the observable that distinguishes the two modes.
+        let image = render("blend/blend_exclusion", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(127, 128, 127), tolerance: 1)
+    }
+
+    // soft-light — DOCUMENTED DIVERGENCE. Core Graphics' `.softLight` is not the
+    // W3C CSS Compositing soft-light formula: for D=0.5, S=1.0 the CSS formula
+    // yields (181,·,·) but CG yields (192,·,·), a ~11/255 (~4%) max-channel
+    // difference. This is CG's implementation, surfaced by S12 and recorded in
+    // the docs as a known limitation. Pinned here as a regression guard on CG's
+    // actual value, NOT the CSS oracle value.
+    func testBlendSoftLightUsesCoreGraphicsVariant() {
+        let image = render("blend/blend_softlight", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(192, 64, 64), tolerance: 2)
+    }
+
+    // Non-separable modes — CG matched the CSS oracle (Lum 0.3/0.59/0.11,
+    // SetSat/SetLum in sRGB) to delta 0, confirming CG uses the CSS luminance
+    // model in this space. Operands chosen so the four modes are mutually
+    // distinct (Cb light+desaturated, Cs dark+saturated).
+    func testBlendHue() {
+        let image = render("blend/blend_hue", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(159, 199, 167), tolerance: 2)
+    }
+
+    func testBlendSaturation() {
+        let image = render("blend/blend_saturation", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(224, 174, 124), tolerance: 2)
+    }
+
+    func testBlendColor() {
+        let image = render("blend/blend_color", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(123, 223, 143), tolerance: 2)
+    }
+
+    func testBlendLuminosity() {
+        let image = render("blend/blend_luminosity", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(97, 77, 57), tolerance: 2)
+    }
+
+    // T-B10g — combined opacity + mask + mix-blend-mode on ONE element, all
+    // riding a single isolation layer in the design §7 order. Full-pass mask +
+    // opacity 1 reduces to multiply(red, green) = black; a broken order or a
+    // second surface would not land on pure black.
+    func testBlendCombinedOpacityMaskBlendSingleLayer() {
+        let image = render("blend/blend_opacity_mask_multiply", width: 100, height: 100)
+        SnapshotSupport.assertPixel(image, x: 50, y: 50, equals: Pixel(0, 0, 0))
+    }
 }
 
 private extension CGImage {

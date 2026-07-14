@@ -1,0 +1,19 @@
+<!--
+T-B10g (exact anchor): opacity + mask + mix-blend-mode on ONE element, all
+riding a single isolation layer (Design/blend-modes.md §7). Backdrop D=green;
+element = red rect, opacity=1, mask fully white (luminance 1.0 = full pass) over
+the sample, mix-blend-mode="multiply". If the three compose in one layer in the
+right order, the mask is a no-op and the layer composites multiply(red,green)=
+black at (50,50). A broken order (e.g. mask applied after blend, or a second
+surface) would not land on pure black.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
+  <rect x="0" y="0" width="100" height="100" fill="#00FF00"/>
+  <defs>
+    <mask id="mfull" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
+      <rect x="10" y="10" width="80" height="80" fill="#FFFFFF"/>
+    </mask>
+  </defs>
+  <rect x="20" y="20" width="60" height="60" fill="#FF0000" opacity="1"
+        mask="url(#mfull)" mix-blend-mode="multiply"/>
+</svg>
