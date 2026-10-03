@@ -4,23 +4,6 @@
 //
 //  Parses SVG document data into the flat-arena IR defined in SVGModel.swift.
 //
-//  Built on Foundation's event-driven `XMLParser` (libxml2-backed SAX) rather
-//  than a retained DOM: elements are turned into arena entries as the parser
-//  opens/closes tags, so the process never holds a second full object graph
-//  in memory alongside the IR.
-//
-//  Cascade resolution (presentation attributes + `style=""` -> ComputedStyle)
-//  is explicitly NOT done here — see StyleResolver.swift. This layer only
-//  captures each element's *own* declarations (`RawStyle`), with the
-//  `style=""` block applied after presentation attributes so it wins, per the
-//  precedence documented on `RawStyle`.
-//
-//  id resolution timing follows the model's documented policy (SVGModel.swift
-//  invariant 4 / `Use.resolved` doc comment): a reference is pre-resolved via
-//  `idMap` if the target was already registered when the reference is parsed
-//  (backward reference); otherwise it is left `.none` and resolved on demand
-//  later via `idMap` (forward reference). There is no second fix-up pass.
-//
 
 import CoreGraphics
 import Foundation
